@@ -101,10 +101,19 @@ class EthnodeProxy:
                 logger.debug(f"response: {response_kwargs}")
                 return web.Response(**response_kwargs)
 
-    async def _hello(self, request: web.Request) -> web.Response:
+    async def _main_endpoint(self, request: web.Request) -> web.Response:
+        t = "empty"
+        with open('ethnode_requestor/templates/index.html') as f:
+            t = f.read()
+        return web.Response(text=t, content_type="text/html")
 
+    async def _hello(self, request: web.Request) -> web.Response:
+        # test response
         return web.Response(text="whatever" + str(self._clients))
 
+    async def _clients_endpoint(self, request: web.Request) -> web.Response:
+        # test response
+        return web.Response(text="whatever" + str(self._clients))
 
     async def run(self):
         """
@@ -113,8 +122,10 @@ class EthnodeProxy:
         fashion
         """
 
-        app.router.add_route("*", "/", handler=self._request_handler)
+        app.router.add_route("*", "/rpc", handler=self._request_handler)
         app.router.add_route("*", "/hello", handler=self._hello)
+        app.router.add_route("*", "/clients", handler=self._clients_endpoint)
+        app.router.add_route("*", "/", handler=self._main_endpoint)
         app.add_routes(routes)
         self._app_task = asyncio.create_task(
             web._run_app(app, port=self._port, handle_signals=False, print=None)  # noqa
