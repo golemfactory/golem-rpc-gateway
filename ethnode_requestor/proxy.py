@@ -1,0 +1,119 @@
+import asyncio
+import aiohttp
+from aiohttp import web
+from datetime import datetime, timedelta, timezone
+import random
+
+from typing import Optional
+
+from yapapi.services import Cluster
+
+from http_server import app, routes
+from service import Ethnode
+
+INSTANCES_RETRY_INTERVAL_SEC = 1
+INSTANCES_RETRY_TIMEOUT_SEC = 30
+
+MAX_RETRIES = 3
+
+from logging import getLogger
+
+logger = getLogger("yapapi...ethnode_requestor.proxy")
+
+
+class EthnodeProxy:
+    def __init__(self, cluster: Cluster[Ethnode], port: int):
+        self._request_count = 0
+        self._request_lock = asyncio.Lock()
+        self._cluster = cluster
+        self._port = port
+        self._app_task: asyncio.Task
+        # self._site: Optional[web.TCPSite] = None
+
+    async def get_instance(self) -> Ethnode:
+        timeout = datetime.now(timezone.utc) + timedelta(seconds=INSTANCES_RETRY_TIMEOUT_SEC)
+        while datetime.now(timezone.utc) < timeout:
+            instances = [i for i in self._cluster.instances if i.is_ready]
+            if instances:
+                async with self._request_lock:
+                    self._request_count += 1
+                    return instances[self._request_count % len(instances)]
+
+            logger.warning("Waiting for any available instances...")
+            await asyncio.sleep(INSTANCES_RETRY_INTERVAL_SEC)
+
+        raise TimeoutError(
+            f"Could not find an available instance after {INSTANCES_RETRY_TIMEOUT_SEC}s."
+        )
+
+    async def _request_handler(self, request: web.Request) -> web.Response:
+        logger.debug(
+            f"Received a local HTTP request: {request.method} {request.path_qs}, "
+            f"headers={request.headers}"
+        )
+        retry = 0
+        while retry <= MAX_RETRIES:
+            instance = await self.get_instance()
+            try:
+                return await self._handle_request(instance, request)
+            except aiohttp.ClientConnectionError as e:
+                retry += 1
+                logger.warning(
+                    "Retrying %s / %s, because of %s: %s on",
+                    retry,
+                    MAX_RETRIES,
+                    type(e).__name__,
+                    e,
+                )
+                # fail the provider and restart the instance on a connection failure
+                instance.fail(blacklist_node=False)
+
+    @staticmethod
+    async def _handle_request(instance: Ethnode, request: web.Request) -> web.Response:
+        address = instance.addresses[random.randint(0, len(instance.addresses) - 1)]
+        logger.debug(f"Using: {instance} / {address}")
+        async with aiohttp.ClientSession() as session:
+            async with session.request(
+                request.method, address, headers=request.headers, data=request.content
+            ) as resp:
+                headers = {
+                    k: v
+                    for k, v in resp.headers.items()
+                    if k
+                    not in (
+                        "Content-Encoding",
+                        "Content-Length",
+                        "Transfer-Encoding",
+                    )
+                }
+                response_kwargs = {
+                    "reason": resp.reason,
+                    "status": resp.status,
+                    "body": await resp.read(),
+                    "headers": headers,
+                }
+                logger.debug(f"response: {response_kwargs}")
+                return web.Response(**response_kwargs)
+
+    async def run(self):
+        """
+        run a local HTTP server, listening on the specified port and passing subsequent requests to
+        the :meth:`~HttpProxyService.handle_request` of the specified cluster in a round-robin
+        fashion
+        """
+
+        app.router.add_route("*", "/", handler=self._request_handler)
+        app.add_routes(routes)
+        self._app_task = asyncio.create_task(
+            web._run_app(app, port=self._port, handle_signals=False, print=None)  # noqa
+        )
+
+        # runner = web.ServerRunner(web.Server(self._request_handler))  # type: ignore
+        # await runner.setup()
+        # self._site = web.TCPSite(runner, port=self._port)
+        # await self._site.start()
+
+    async def stop(self):
+        assert self._app_task, "Not started, call `run` first."
+        self._app_task.cancel()
+        await asyncio.gather(*[self._app_task])
