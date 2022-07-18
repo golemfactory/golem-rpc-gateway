@@ -10,6 +10,7 @@ from yapapi.services import Cluster
 
 from http_server import app, routes
 from service import Ethnode
+from client_info import ClientInfo
 
 INSTANCES_RETRY_INTERVAL_SEC = 1
 INSTANCES_RETRY_TIMEOUT_SEC = 30
@@ -20,15 +21,19 @@ from logging import getLogger
 
 logger = getLogger("yapapi...ethnode_requestor.proxy")
 
-
 class EthnodeProxy:
-    def __init__(self, cluster: Cluster[Ethnode], port: int):
+    def __init__(self, cluster: Cluster[Ethnode], port: int, proxy_only_mode):
         self._request_count = 0
         self._request_lock = asyncio.Lock()
         self._cluster = cluster
         self._port = port
         self._app_task: asyncio.Task
+        self._proxy_only_mode = proxy_only_mode
         # self._site: Optional[web.TCPSite] = None
+        self._clients = dict()
+
+        api_key = "MAaCpE421MddDmzMLcAp"
+        self._clients[api_key] = ClientInfo(api_key)
 
     async def get_instance(self) -> Ethnode:
         timeout = datetime.now(timezone.utc) + timedelta(seconds=INSTANCES_RETRY_TIMEOUT_SEC)
@@ -53,7 +58,8 @@ class EthnodeProxy:
         )
         retry = 0
         while retry <= MAX_RETRIES:
-            instance = await self.get_instance()
+            instance = None if self._proxy_only_mode else await self.get_instance()
+
             try:
                 return await self._handle_request(instance, request)
             except aiohttp.ClientConnectionError as e:
@@ -95,6 +101,11 @@ class EthnodeProxy:
                 logger.debug(f"response: {response_kwargs}")
                 return web.Response(**response_kwargs)
 
+    async def _hello(self, request: web.Request) -> web.Response:
+
+        return web.Response(text="whatever" + str(self._clients))
+
+
     async def run(self):
         """
         run a local HTTP server, listening on the specified port and passing subsequent requests to
@@ -103,6 +114,7 @@ class EthnodeProxy:
         """
 
         app.router.add_route("*", "/", handler=self._request_handler)
+        app.router.add_route("*", "/hello", handler=self._hello)
         app.add_routes(routes)
         self._app_task = asyncio.create_task(
             web._run_app(app, port=self._port, handle_signals=False, print=None)  # noqa

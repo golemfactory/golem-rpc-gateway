@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "ethnode-requestor"
+name = "golem-rpc-gateway"
 version = "0.0.1"
 description = ""
 authors = ["Golem Factory <contact@golem.network>"]

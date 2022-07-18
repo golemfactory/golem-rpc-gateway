@@ -94,7 +94,7 @@ async def main(
 
         print(colors.cyan("Eth nodes started..."))
 
-        proxy = EthnodeProxy(ethnode_cluster, local_port)
+        proxy = EthnodeProxy(ethnode_cluster, local_port, False)
         await proxy.run()
 
         print(colors.cyan(f"Local server listening on:\nhttp://localhost:{local_port}"))
@@ -139,6 +139,16 @@ async def main(
         ethnode_cluster.stop()
 
 
+async def main_no_proxy(args):
+    print(colors.yellow(f"Warning - running in proxy only mode. This is not proper way of running the service. Use for development."))
+    proxy = EthnodeProxy(None, args.local_port, True)
+    await proxy.run()
+
+    print(colors.cyan(f"Local server listening on:\nhttp://localhost:{args.local_port}"))
+    while True:
+        await asyncio.sleep(100)
+
+
 if __name__ == "__main__":
     parser = build_parser("Ethnode requestor")
     parser.add_argument(
@@ -159,6 +169,12 @@ if __name__ == "__main__":
         default=316224000,
         type=int,
         help=("Service expiry time " "(in seconds, default: %(default)s)"),
+    )
+    parser.add_argument(
+        "--proxy-only",
+        default=False,
+        type=bool,
+        help=("In proxy only mode run only proxy and ignore requestor part"),
     )
     parser.add_argument(
         "--node-running-time",
@@ -184,22 +200,30 @@ if __name__ == "__main__":
     parser.set_defaults(log_file=f"http-auth-yapapi-{now}.log")
     args = parser.parse_args()
 
+    print(colors.green(f"Patching yapapi - TODO remove in future version of yapapi"))
+
     patch = mock.patch(
         "yapapi.services.Cluster._instance_not_started",
         staticmethod(_instance_not_stopped),
     )
     patch.start()
 
-    run_golem_example(
-        main(
-            service_name=args.service,
-            num_instances=args.num_instances,
-            running_time=args.running_time,
-            node_running_time_range=args.node_running_time,
-            subnet_tag=args.subnet_tag,
-            payment_driver=args.payment_driver,
-            payment_network=args.payment_network,
-            local_port=args.local_port,
-        ),
-        log_file=args.log_file,
-    )
+    if args.proxy_only:
+        run_golem_example(
+            main_no_proxy(args),
+            log_file=args.log_file,
+        )
+    else:
+        run_golem_example(
+            main(
+                service_name=args.service,
+                num_instances=args.num_instances,
+                running_time=args.running_time,
+                node_running_time_range=args.node_running_time,
+                subnet_tag=args.subnet_tag,
+                payment_driver=args.payment_driver,
+                payment_network=args.payment_network,
+                local_port=args.local_port,
+            ),
+            log_file=args.log_file,
+        )
