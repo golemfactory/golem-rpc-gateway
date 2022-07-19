@@ -29,7 +29,7 @@ allowed_endpoints = ["rinkeby", "polygon"]
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 env = Environment(
-    loader=PackageLoader("ethnode_requestor"),
+    loader=PackageLoader(__name__),
     autoescape=select_autoescape()
 )
 

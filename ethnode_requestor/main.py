@@ -35,30 +35,30 @@ def _instance_not_stopped(service: Ethnode) -> bool:
 
 
 async def main(
-    service_name: str,
-    num_instances: int,
-    running_time: int,
-    node_running_time_range: NodeRunningTimeRange,
-    subnet_tag: str,
-    payment_driver: str,
-    payment_network: str,
-    local_port: int,
+        service_name: str,
+        num_instances: int,
+        running_time: int,
+        node_running_time_range: NodeRunningTimeRange,
+        subnet_tag: str,
+        payment_driver: str,
+        payment_network: str,
+        local_port: int,
 ):
     payload = EthnodePayload(runtime=service_name)
 
     async with Golem(
-        budget=1.0,
-        payment_driver=payment_driver,
-        payment_network=payment_network,
-        subnet_tag=subnet_tag,
-        strategy=BadNodeFilter(),
+            budget=1.0,
+            payment_driver=payment_driver,
+            payment_network=payment_network,
+            subnet_tag=subnet_tag,
+            strategy=BadNodeFilter(),
     ) as golem:
         print_env_info(golem)
         expiration = (
-            datetime.now(timezone.utc)
-            + STARTING_TIMEOUT
-            + EXPIRATION_MARGIN
-            + timedelta(seconds=running_time)
+                datetime.now(timezone.utc)
+                + STARTING_TIMEOUT
+                + EXPIRATION_MARGIN
+                + timedelta(seconds=running_time)
         )
 
         ethnode_cluster = await golem.run_service(
@@ -85,8 +85,8 @@ async def main(
         commissioning_time = datetime.now()
 
         while (
-            not available(ethnode_cluster)
-            and datetime.now() < commissioning_time + STARTING_TIMEOUT
+                not available(ethnode_cluster)
+                and datetime.now() < commissioning_time + STARTING_TIMEOUT
         ):
             print(ethnode_cluster.instances)
             await asyncio.sleep(5)
