@@ -1,9 +1,8 @@
 from aiohttp import web
 
 routes = web.RouteTableDef()
-app = web.Application()
+quart_app = web.Application()
 
-import proxy
 
 
 

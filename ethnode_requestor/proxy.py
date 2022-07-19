@@ -8,9 +8,10 @@ import random
 
 from typing import Optional
 
+from quart import render_template, copy_current_app_context
 from yapapi.services import Cluster
 
-from http_server import app, routes
+from http_server import quart_app, routes
 from service import Ethnode
 from client_info import ClientInfo
 
@@ -25,6 +26,12 @@ logger = getLogger("yapapi...ethnode_requestor.proxy")
 
 allowed_endpoints = ["rinkeby", "polygon"]
 
+
+from jinja2 import Environment, PackageLoader, select_autoescape
+env = Environment(
+    loader=PackageLoader("ethnode_requestor"),
+    autoescape=select_autoescape()
+)
 
 
 class EthnodeProxy:
@@ -172,12 +179,6 @@ class EthnodeProxy:
                 logger.debug(f"response: {response_kwargs}")
                 return web.Response(**response_kwargs)
 
-    async def _main_endpoint(self, request: web.Request) -> web.Response:
-        t = "empty"
-        with open('ethnode_requestor/templates/index.html') as f:
-            t = f.read()
-        return web.Response(text=t, content_type="text/html")
-
     async def _hello(self, request: web.Request) -> web.Response:
         # test response
         return web.Response(text="whatever" + str(self._clients))
@@ -186,6 +187,13 @@ class EthnodeProxy:
         # test response
         return web.Response(text=json.dumps(self._clients), content_type="application/json")
 
+    async def _main_endpoint(self, request: web.Request) -> web.Response:
+        t = "empty"
+        template = env.get_template("index.html")
+        page = template.render(hello="template_test")
+        print(page)
+        return web.Response(text=page, content_type="text/html")
+
     async def run(self):
         """
         run a local HTTP server, listening on the specified port and passing subsequent requests to
@@ -193,13 +201,13 @@ class EthnodeProxy:
         fashion
         """
 
-        app.router.add_route("*", "/rpc", handler=self._request_handler)
-        app.router.add_route("*", "/hello", handler=self._hello)
-        app.router.add_route("*", "/clients", handler=self._clients_endpoint)
-        app.router.add_route("*", "/", handler=self._main_endpoint)
-        app.add_routes(routes)
+        quart_app.router.add_route("*", "/", handler=self._main_endpoint)
+        quart_app.router.add_route("*", "/rpc", handler=self._request_handler)
+        quart_app.router.add_route("*", "/hello", handler=self._hello)
+        quart_app.router.add_route("*", "/clients", handler=self._clients_endpoint)
+        quart_app.add_routes(routes)
         self._app_task = asyncio.create_task(
-            web._run_app(app, port=self._port, handle_signals=False, print=None)  # noqa
+            web._run_app(quart_app, port=self._port, handle_signals=False, print=None)  # noqa
         )
 
         # runner = web.ServerRunner(web.Server(self._request_handler))  # type: ignore
