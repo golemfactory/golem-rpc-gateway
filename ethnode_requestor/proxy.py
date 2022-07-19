@@ -187,11 +187,39 @@ class EthnodeProxy:
         # test response
         return web.Response(text=json.dumps(self._clients), content_type="application/json")
 
+    async def _instances_endpoint(self, request: web.Request) -> web.Response:
+        # test response
+        return web.Response(text=json.dumps(self.get_cluster_info()), content_type="application/json")
+
+    def get_cluster_info(self):
+        cv = cluster_view = {}
+        if self._cluster:
+            cv["exists"] = True
+            cv["instances"] = []
+            for idx, instance in enumerate(self._cluster.instances):
+                print(instance)
+                cv_inst = {}
+                cv_inst["addresses"] = instance.addresses
+                cv_inst["username"] = instance.username
+                cv_inst["is_ready"] = instance.is_ready
+                cv_inst["state"] = instance.state.identifier
+                cv_inst["node_expiry"] = instance.node_expiry.strftime("%Y-%m-%d_%H:%M:%S")
+                today = datetime.now(timezone.utc)
+                cv_inst["expires_in_secs"] = (instance.node_expiry - today).total_seconds()
+                cv_inst["provider_id"] = instance.provider_id
+                cv_inst["provider_name"] = instance.provider_name
+                cv_inst["stopped"] = instance.stopped
+
+                cv["instances"].append(cv_inst)
+        else:
+            cv["exists"] = False
+        return cv
+
+
     async def _main_endpoint(self, request: web.Request) -> web.Response:
         t = "empty"
         template = env.get_template("index.html")
         page = template.render(hello="template_test")
-        print(page)
         return web.Response(text=page, content_type="text/html")
 
     async def run(self):
@@ -205,6 +233,7 @@ class EthnodeProxy:
         quart_app.router.add_route("*", "/rpc", handler=self._request_handler)
         quart_app.router.add_route("*", "/hello", handler=self._hello)
         quart_app.router.add_route("*", "/clients", handler=self._clients_endpoint)
+        quart_app.router.add_route("*", "/instances", handler=self._instances_endpoint)
         quart_app.add_routes(routes)
         self._app_task = asyncio.create_task(
             web._run_app(quart_app, port=self._port, handle_signals=False, print=None)  # noqa

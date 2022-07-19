@@ -1,3 +1,4 @@
+import os
 import asyncio
 import colors
 from datetime import datetime, timezone, timedelta
@@ -197,7 +198,8 @@ if __name__ == "__main__":
     # payment_init.communicate()
 
     now = datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
-    parser.set_defaults(log_file=f"http-auth-yapapi-{now}.log")
+
+    parser.set_defaults(log_file=f"eth-request-{now}.log")
     args = parser.parse_args()
 
     print(colors.green(f"Patching yapapi - TODO remove in future version of yapapi"))
