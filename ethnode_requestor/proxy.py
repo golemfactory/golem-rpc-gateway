@@ -40,7 +40,7 @@ class EthnodeProxy:
         self._request_lock = asyncio.Lock()
         self._cluster = cluster
         self._port = port
-        self._app_task: asyncio.Task
+        self._app_task: asyncio.Task = None
         self._proxy_only_mode = proxy_only_mode
         # self._site: Optional[web.TCPSite] = None
         self._clients = dict()
