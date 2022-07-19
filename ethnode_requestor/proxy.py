@@ -195,22 +195,10 @@ class EthnodeProxy:
         cv = cluster_view = {}
         if self._cluster:
             cv["exists"] = True
-            cv["instances"] = []
+            cv["runtime"] = self._cluster.payload.runtime
+            cv["instances"] = {}
             for idx, instance in enumerate(self._cluster.instances):
-                print(instance)
-                cv_inst = {}
-                cv_inst["addresses"] = instance.addresses
-                cv_inst["username"] = instance.username
-                cv_inst["is_ready"] = instance.is_ready
-                cv_inst["state"] = instance.state.identifier
-                cv_inst["node_expiry"] = instance.node_expiry.strftime("%Y-%m-%d_%H:%M:%S")
-                today = datetime.now(timezone.utc)
-                cv_inst["expires_in_secs"] = (instance.node_expiry - today).total_seconds()
-                cv_inst["provider_id"] = instance.provider_id
-                cv_inst["provider_name"] = instance.provider_name
-                cv_inst["stopped"] = instance.stopped
-
-                cv["instances"].append(cv_inst)
+                cv["instances"][instance.uuid] = instance.to_dict()
         else:
             cv["exists"] = False
         return cv

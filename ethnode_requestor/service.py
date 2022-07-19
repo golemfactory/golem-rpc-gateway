@@ -23,6 +23,7 @@ class EthnodePayload(Payload):
 
 
 class Ethnode(Service):
+    uuid: str
     username: str
     password: str
     failed: bool = False
@@ -46,6 +47,7 @@ class Ethnode(Service):
         password: Optional[str] = None,
     ):
         super().__init__()
+        self.uuid = str(uuid.uuid4())
         self.username = username or self.generate_username()
         self.password = password or self.generate_password(16)
         self.addresses = list()
@@ -132,3 +134,18 @@ class Ethnode(Service):
         self._ctx = None
         self.failed = False
         self.addresses = list()
+
+    def to_dict(self):
+        cv_inst = {}
+        cv_inst["uuid"] = self.uuid
+        cv_inst["addresses"] = self.addresses
+        cv_inst["username"] = self.username
+        cv_inst["is_ready"] = self.is_ready
+        cv_inst["state"] = self.state.identifier
+        cv_inst["node_expiry"] = self.node_expiry.strftime("%Y-%m-%d_%H:%M:%S")
+        today = datetime.now(timezone.utc)
+        cv_inst["expires_in_secs"] = (self.node_expiry - today).total_seconds()
+        cv_inst["provider_id"] = self.provider_id
+        cv_inst["provider_name"] = self.provider_name
+        cv_inst["stopped"] = self.stopped
+        return cv_inst

@@ -119,6 +119,9 @@ async def main(
                     i.fail(blacklist_node=False)
                     costs[str(i)] = None
                     state[str(i)] = None
+                except AttributeError:
+                    # just ignore the error - the instance is most likely being restarted
+                    pass
 
             print(ethnode_cluster.instances)
             print(colors.cyan(costs))
