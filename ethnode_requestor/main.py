@@ -1,6 +1,7 @@
 import os
 import asyncio
 import colors
+import requests
 from datetime import datetime, timezone, timedelta
 from unittest import mock
 
@@ -181,6 +182,12 @@ if __name__ == "__main__":
         help=("In proxy only mode run only proxy and ignore requestor part"),
     )
     parser.add_argument(
+        "--check-for-yagna",
+        default=False,
+        type=bool,
+        help=("Check for yagna if docker enabled"),
+    )
+    parser.add_argument(
         "--node-running-time",
         default=str(NODE_RUNNING_TIME_DEFAULT),
         type=NodeRunningTimeRange,
@@ -204,6 +211,18 @@ if __name__ == "__main__":
 
     parser.set_defaults(log_file=f"eth-request-{now}.log")
     args = parser.parse_args()
+    if args.check_for_yagna:
+        import socket
+        print(socket.gethostbyname('yagna_requestor_node'))
+        print("Checking for yagna if docker started")
+        url = 'http://yagna_requestor_node:3333'
+        resp = requests.get(url=url)
+        data = resp.json()
+        if data["payment_initialized"]:
+            print("Yagna detected, continuing...")
+        else:
+            raise Exception("yagna in docker not initialized")
+
 
     print(colors.green(f"Patching yapapi - TODO remove in future version of yapapi"))
 
@@ -212,6 +231,8 @@ if __name__ == "__main__":
         staticmethod(_instance_not_stopped),
     )
     patch.start()
+
+
 
     if args.proxy_only:
         run_golem_example(

@@ -1,0 +1,17 @@
+services:
+  ethnode_requestor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - ethnode.env    
+    command: run.sh
+  yagna_requestor_node:
+    image: yagna_requestor_node
+    env_file:
+      - public.env
+      - private.env
+    volumes:
+      - "./yagna_dir:/root/.local/share/yagna"
+    command: run.sh
+      
