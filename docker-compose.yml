@@ -7,6 +7,9 @@ services:
       - ethnode.env    
     command: run.sh
   yagna_requestor_node:
+    build:
+      context: yagna_requestor_node
+      dockerfile: Dockerfile
     image: yagna_requestor_node
     env_file:
       - public.env
