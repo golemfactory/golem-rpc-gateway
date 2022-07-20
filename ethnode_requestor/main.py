@@ -2,6 +2,7 @@ import os
 import asyncio
 import colors
 import requests
+import time
 from datetime import datetime, timezone, timedelta
 from unittest import mock
 
@@ -212,16 +213,23 @@ if __name__ == "__main__":
     parser.set_defaults(log_file=f"eth-request-{now}.log")
     args = parser.parse_args()
     if args.check_for_yagna:
-        import socket
-        print(socket.gethostbyname('yagna_requestor_node'))
-        print("Checking for yagna if docker started")
-        url = 'http://yagna_requestor_node:3333'
-        resp = requests.get(url=url)
-        data = resp.json()
-        if data["payment_initialized"]:
-            print("Yagna detected, continuing...")
-        else:
-            raise Exception("yagna in docker not initialized")
+        max_tries = 15
+        for tries in range(0, max_tries):
+            try:
+                time.sleep(1.0)
+                print("Checking for yagna if docker started")
+                url = 'http://yagna_requestor_node:3333'
+                resp = requests.get(url=url)
+                data = resp.json()
+                if data["payment_initialized"]:
+                    print("Yagna detected, continuing...")
+                    break
+                else:
+                    raise Exception("yagna in docker not initialized")
+            except Exception as ex:
+                print("Check for yagna startup failed: " + str(ex))
+                continue
+
 
 
     print(colors.green(f"Patching yapapi - TODO remove in future version of yapapi"))
