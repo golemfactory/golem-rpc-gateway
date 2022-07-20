@@ -79,24 +79,29 @@ class EthnodeProxy:
 
         client = self._clients.get(token)
 
-        if not self._proxy_only_mode:
-            retry = 0
-            while retry <= MAX_RETRIES:
-                instance = None if self._proxy_only_mode else await self.get_instance()
 
-                try:
-                    return await self._handle_request(instance, request)
-                except aiohttp.ClientConnectionError as e:
-                    retry += 1
-                    logger.warning(
-                        "Retrying %s / %s, because of %s: %s on",
-                        retry,
-                        MAX_RETRIES,
-                        type(e).__name__,
-                        e,
-                    )
-                    # fail the provider and restart the instance on a connection failure
-                    instance.fail(blacklist_node=False)
+        if not self._proxy_only_mode:
+            if client:
+                client.add_request(network)
+                retry = 0
+                while retry <= MAX_RETRIES:
+                    instance = None if self._proxy_only_mode else await self.get_instance()
+
+                    try:
+                        return await self._handle_request(instance, request)
+                    except aiohttp.ClientConnectionError as e:
+                        retry += 1
+                        logger.warning(
+                            "Retrying %s / %s, because of %s: %s on",
+                            retry,
+                            MAX_RETRIES,
+                            type(e).__name__,
+                            e,
+                        )
+                        # fail the provider and restart the instance on a connection failure
+                        instance.fail(blacklist_node=False)
+            else:
+                return web.Response(text="client not found, probably wrong token")
         else:
             if client:
                 client.add_request(network)
