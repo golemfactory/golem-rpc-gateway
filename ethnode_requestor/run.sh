@@ -1,6 +1,6 @@
 #! /bin/bash
 export PATH=".:$PATH"
 
-python main.py --check-for-yagna true --subnet-tag bor_proxy_subnet
+poetry run python main.py --check-for-yagna true --subnet-tag bor_proxy_subnet
 
 

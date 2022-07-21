@@ -218,7 +218,7 @@ if __name__ == "__main__":
             try:
                 time.sleep(1.0)
                 print("Checking for yagna if docker started")
-                url = 'http://yagna_requestor_node:3333'
+                url = os.getenv("YAGNA_MONITOR_URL") or 'http://127.0.0.1:3333'
                 resp = requests.get(url=url)
                 data = resp.json()
                 if data["payment_initialized"]:

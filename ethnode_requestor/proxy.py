@@ -6,14 +6,13 @@ from aiohttp import web
 from datetime import datetime, timedelta, timezone
 import random
 
-from typing import Optional
-
-from quart import render_template, copy_current_app_context
 from yapapi.services import Cluster
 
 from http_server import quart_app, routes
 from service import Ethnode
 from client_info import ClientInfo
+
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 INSTANCES_RETRY_INTERVAL_SEC = 1
 INSTANCES_RETRY_TIMEOUT_SEC = 30
@@ -27,9 +26,8 @@ logger = getLogger("yapapi...ethnode_requestor.proxy")
 allowed_endpoints = ["rinkeby", "polygon"]
 
 
-from jinja2 import Environment, PackageLoader, select_autoescape
 env = Environment(
-    loader=PackageLoader(__name__),
+    loader=FileSystemLoader("templates"),
     autoescape=select_autoescape()
 )
 

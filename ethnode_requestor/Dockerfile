@@ -18,5 +18,5 @@ COPY run.sh ./
 RUN chmod +x run.sh
 
 COPY *.py ./
-COPY templates ./
+COPY templates ./templates
 ENV PATH=".:${PATH}"
