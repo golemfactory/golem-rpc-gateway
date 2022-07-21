@@ -1,3 +1,6 @@
 /*.log
 /ethnode_requestor/__pycache__/*.pyc
 /.idea
+/yagna_dir
+/private_ethnode_config.env
+/private_node_config.env

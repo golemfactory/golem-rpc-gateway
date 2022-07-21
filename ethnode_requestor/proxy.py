@@ -62,9 +62,9 @@ class EthnodeProxy:
             f"Could not find an available instance after {INSTANCES_RETRY_TIMEOUT_SEC}s."
         )
 
-    async def _request_handler(self, request: web.Request) -> web.Response:
-        token = request.query.get("token")
-        network = request.query.get("network")
+    async def _proxy_rpc(self, request: web.Request) -> web.Response:
+        token = request.match_info["token"]
+        network = request.match_info["network"]
         logger.debug(
             f"Received a local HTTP request: {request.method} {request.path_qs}, "
             f"headers={request.headers}"
@@ -221,7 +221,7 @@ class EthnodeProxy:
         """
 
         quart_app.router.add_route("*", "/", handler=self._main_endpoint)
-        quart_app.router.add_route("*", "/rpc", handler=self._request_handler)
+        quart_app.router.add_route("*", "/rpc/{network}/{token}", handler=self._proxy_rpc)
         quart_app.router.add_route("*", "/hello", handler=self._hello)
         quart_app.router.add_route("*", "/clients", handler=self._clients_endpoint)
         quart_app.router.add_route("*", "/instances", handler=self._instances_endpoint)
