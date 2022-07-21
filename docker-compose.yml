@@ -1,7 +1,7 @@
 services:
   ethnode_requestor:
     build:
-      context: .
+      context: ethnode_requestor
       dockerfile: Dockerfile
     env_file:
       - public_ethnode_config.env

@@ -8,10 +8,15 @@ RUN mv golem-requestor-linux-v0.10.1/gftp .
 RUN rm -fr golem-requestor-linux-v0.10.1
 RUN rm golem-requestor-linux-v0.10.1.tar.gz
 
-RUN pip install poetry yapapi ansicolors quart aiohttp requests
+RUN pip install poetry
+
+COPY pyproject.toml .
+COPY poetry.lock .
+RUN poetry install
 
 COPY run.sh ./
 RUN chmod +x run.sh
 
-ADD ethnode_requestor ./ethnode_requestor
+COPY *.py ./
+COPY templates ./
 ENV PATH=".:${PATH}"
