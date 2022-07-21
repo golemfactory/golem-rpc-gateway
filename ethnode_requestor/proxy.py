@@ -34,10 +34,10 @@ env = Environment(
 
 
 class EthnodeProxy:
-    def __init__(self, cluster: Cluster[Ethnode], port: int, proxy_only_mode):
+    def __init__(self, port: int, proxy_only_mode):
         self._request_count = 0
         self._request_lock = asyncio.Lock()
-        self._cluster = cluster
+        self._cluster = None
         self._port = port
         self._app_task: asyncio.Task = None
         self._proxy_only_mode = proxy_only_mode
@@ -46,6 +46,9 @@ class EthnodeProxy:
 
         api_key = "MAaCpE421MddDmzMLcAp"
         self._clients[api_key] = ClientInfo(api_key)
+
+    def set_cluster(self, cluster: Cluster[Ethnode]):
+        self._cluster = cluster
 
     async def get_instance(self) -> Ethnode:
         timeout = datetime.now(timezone.utc) + timedelta(seconds=INSTANCES_RETRY_TIMEOUT_SEC)

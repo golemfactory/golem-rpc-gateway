@@ -62,6 +62,10 @@ async def main(
                 + EXPIRATION_MARGIN
                 + timedelta(seconds=running_time)
         )
+        proxy = EthnodeProxy(local_port, False)
+        await proxy.run()
+
+        print(colors.cyan(f"Local server listening on:\nhttp://localhost:{local_port}"))
 
         ethnode_cluster = await golem.run_service(
             Ethnode,
@@ -73,6 +77,8 @@ async def main(
             respawn_unstarted_instances=True,
             expiration=expiration,
         )
+
+        proxy.set_cluster(ethnode_cluster)
 
         def available(cluster):
             return any(i.state == ServiceState.running for i in cluster.instances)
@@ -97,10 +103,7 @@ async def main(
 
         print(colors.cyan("Eth nodes started..."))
 
-        proxy = EthnodeProxy(ethnode_cluster, local_port, False)
-        await proxy.run()
 
-        print(colors.cyan(f"Local server listening on:\nhttp://localhost:{local_port}"))
 
         # wait until Ctrl-C
 
