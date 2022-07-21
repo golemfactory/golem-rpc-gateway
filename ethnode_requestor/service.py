@@ -94,7 +94,8 @@ class Ethnode(Service):
                     result = requests.get(url)
                     if result.status_code == 200:
                         self.addresses.append(url)
-                except requests.ConnectionError:
+                except requests.ConnectionError as connerr:
+                    print("Error when connecting to service: " + str(connerr))
                     # print(colors.red(f"Connection error: {url}"))
                     pass
 

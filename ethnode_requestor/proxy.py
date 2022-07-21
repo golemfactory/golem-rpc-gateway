@@ -1,3 +1,4 @@
+import os
 import asyncio
 import json
 
@@ -210,7 +211,8 @@ class EthnodeProxy:
     async def _main_endpoint(self, request: web.Request) -> web.Response:
         t = "empty"
         template = env.get_template("index.html")
-        page = template.render(hello="template_test")
+        base_url = os.getenv("GATEWAY_BASE_URL") or 'http://127.0.0.1:8545'
+        page = template.render(hello="template_test", base_url=base_url)
         return web.Response(text=page, content_type="text/html")
 
     async def run(self):
