@@ -13,6 +13,7 @@ from yapapi.props import constraint, inf
 from yapapi.payload import Payload
 from yapapi.services import Service, ServiceState
 
+from chain_check import get_short_block_info
 from strategy import BadNodeFilter
 from time_range import NodeRunningTimeRange
 
@@ -41,10 +42,10 @@ class Ethnode(Service):
         return "".join([random.choice(string.ascii_letters + string.digits) for _ in range(length)])
 
     def __init__(
-        self,
-        node_running_time_range: NodeRunningTimeRange,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
+            self,
+            node_running_time_range: NodeRunningTimeRange,
+            username: Optional[str] = None,
+            password: Optional[str] = None,
     ):
         super().__init__()
         self.uuid = str(uuid.uuid4())
@@ -91,12 +92,14 @@ class Ethnode(Service):
             for port in service["portHttp"]:
                 url = f"http://{self.username}:{self.password}@{name}:{port}/"
                 try:
-                    result = requests.get(url)
-                    if result.status_code == 200:
-                        self.addresses.append(url)
-                except requests.ConnectionError as connerr:
-                    print("Error when connecting to service: " + str(connerr))
+                    await get_short_block_info(url)
+                    self.addresses.append(url)
+                except requests.ConnectionError as conn_err:
+                    print("Error when connecting to service: " + str(conn_err))
                     # print(colors.red(f"Connection error: {url}"))
+                    pass
+                except Exception as other_ex:
+                    print("Other error when connecting to service: " + str(other_ex))
                     pass
 
         if not self.addresses:

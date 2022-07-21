@@ -9,6 +9,7 @@ import random
 
 from yapapi.services import Cluster
 
+from chain_check import get_short_block_info
 from http_server import quart_app, routes
 from service import Ethnode
 from client_info import ClientInfo
@@ -196,9 +197,9 @@ class EthnodeProxy:
 
     async def _instances_endpoint(self, request: web.Request) -> web.Response:
         # test response
-        return web.Response(text=json.dumps(self.get_cluster_info()), content_type="application/json")
+        return web.Response(text=json.dumps(await self.get_cluster_info()), content_type="application/json")
 
-    def get_cluster_info(self):
+    async def get_cluster_info(self):
         cv = cluster_view = {}
         if self._cluster:
             cv["exists"] = True
@@ -206,6 +207,13 @@ class EthnodeProxy:
             cv["instances"] = {}
             for idx, instance in enumerate(self._cluster.instances):
                 cv["instances"][instance.uuid] = instance.to_dict()
+                inst = cv["instances"][instance.uuid]
+
+                inst["block_info"] = {}
+                if len(instance.addresses) > 0:
+                    address = instance.addresses[0]
+                    if address:
+                        inst["block_info"] = await get_short_block_info(address)
         else:
             cv["exists"] = False
         return cv
