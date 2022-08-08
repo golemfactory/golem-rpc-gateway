@@ -210,10 +210,14 @@ class EthnodeProxy:
                 inst = cv["instances"][instance.uuid]
 
                 inst["block_info"] = {}
-                if len(instance.addresses) > 0:
-                    address = instance.addresses[0]
-                    if address:
-                        inst["block_info"] = await get_short_block_info(address)
+                try:
+                    if len(instance.addresses) > 0:
+                        address = instance.addresses[0]
+                        if address:
+                            inst["block_info"] = await get_short_block_info(address)
+                except Exception as ex:
+                    inst["block_info"]["error"] = "Failed to obtain block info"
+                    logger.warning(f"Failed to obtain block info {ex}")
         else:
             cv["exists"] = False
         return cv
