@@ -164,7 +164,7 @@ if __name__ == "__main__":
         "--service",
         type=str,
         help="Service name",
-        choices=("bor-service", "geth-service"),
+        choices=("bor-service", "geth-service", "mumbai-service"),
         default="bor-service",
     )
     parser.add_argument(

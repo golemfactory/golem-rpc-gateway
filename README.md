@@ -20,5 +20,17 @@ Install poetry
 `poetry run python ethnode_requestor`
 
 
+### Production
 
+docker-compose.yml is production configuration for deployment
+
+```
+docker-compose up
+```
+
+After stopping, you can remove all data using:
+
+```
+docker-compose rm -fsv
+```
 
