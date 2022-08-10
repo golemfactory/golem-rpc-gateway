@@ -92,6 +92,7 @@ class Ethnode(Service):
             for port in service["portHttp"]:
                 url = f"http://{self.username}:{self.password}@{name}:{port}/"
                 try:
+                    print(f"Checking endpoint: {url}")
                     await get_short_block_info(url)
                     self.addresses.append(url)
                 except requests.ConnectionError as conn_err:
