@@ -14,6 +14,7 @@ services:
     command: run.sh
     ports:
       - "8545:8545"
+    restart: unless-stopped
   yagna_requestor_node:
     build:
       context: yagna_requestor_node
@@ -29,3 +30,4 @@ services:
     ports:
       - "3333:3333"      
     command: run.sh
+    restart: unless-stopped
