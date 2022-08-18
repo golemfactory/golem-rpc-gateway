@@ -12,8 +12,6 @@ services:
       - YAGNA_PAYMENT_URL=http://yagna_requestor_node:7465/payment-api/v1
       - YAGNA_MONITOR_URL=http://yagna_requestor_node:3333
     command: run.sh
-    ports:
-      - "8545:8545"
     restart: unless-stopped
   yagna_requestor_node:
     build:
@@ -27,7 +25,5 @@ services:
     environment:
       - GSB_URL=tcp://0.0.0.0:7464
       - YAGNA_API_URL=http://0.0.0.0:7465
-    ports:
-      - "3333:3333"      
     command: run.sh
     restart: unless-stopped
