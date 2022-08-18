@@ -1,7 +1,7 @@
 services:
   ethnode_requestor:
     ports:
-      - "8545:9002"
+      - "9002:8545"
   yagna_requestor_node:
     ports:
-      - "3333:3335"
+      - "3335:3333"
