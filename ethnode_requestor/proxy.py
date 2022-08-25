@@ -83,7 +83,20 @@ class EthnodeProxy:
                 while retry <= MAX_RETRIES:
                     instance = None if self._proxy_only_mode else await self.get_instance()
                     if not instance:
-                        client.add_failed_request(network)
+                        try:
+                            if network == "polygon":
+                                res = await self._handle_request2("https://bor.golem.network", request)
+
+                            elif network == "rinkeby":
+                                res = await self._handle_request2("http://1.geth.testnet.golem.network:55555", request)
+                            else:
+                                raise Exception("unknown network")
+
+                            client.add_backup_request(network)
+                            return res
+                        except Exception as ex:
+                            logger.error(f"Failed to proxy request {ex}")
+                            client.add_failed_request(network)
                     try:
                         return await self._handle_request(instance, request)
                     except aiohttp.ClientConnectionError as e:
