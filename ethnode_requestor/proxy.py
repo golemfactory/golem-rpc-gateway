@@ -52,20 +52,13 @@ class EthnodeProxy:
         self._cluster = cluster
 
     async def get_instance(self) -> Ethnode:
-        timeout = datetime.now(timezone.utc) + timedelta(seconds=INSTANCES_RETRY_TIMEOUT_SEC)
-        while datetime.now(timezone.utc) < timeout:
-            instances = [i for i in self._cluster.instances if i.is_ready]
-            if instances:
-                async with self._request_lock:
-                    self._request_count += 1
-                    return instances[self._request_count % len(instances)]
+        instances = [i for i in self._cluster.instances if i.is_ready]
+        if not instances:
+            return None
 
-            logger.warning("Waiting for any available instances...")
-            await asyncio.sleep(INSTANCES_RETRY_INTERVAL_SEC)
-
-        raise TimeoutError(
-            f"Could not find an available instance after {INSTANCES_RETRY_TIMEOUT_SEC}s."
-        )
+        async with self._request_lock:
+            self._request_count += 1
+            return instances[self._request_count % len(instances)]
 
     async def _proxy_rpc(self, request: web.Request) -> web.Response:
         token = request.match_info["token"]
