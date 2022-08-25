@@ -11,6 +11,8 @@ class ClientNetworkInfo(dict):
     def add_request(self):
         self["request_count"] = self["request_count"] + 1
 
+    def add_failed_request(self):
+        self["request_failed_count"] = self["request_failed_count"] + 1
 
 class ClientInfo(dict):
     def __init__(
@@ -24,3 +26,9 @@ class ClientInfo(dict):
             self["networks"][network_name] = ClientNetworkInfo(request_count=0)
 
         self["networks"][network_name].add_request()
+
+    def add_failed_request(self, network_name):
+        if network_name not in self["networks"]:
+            self["networks"][network_name] = ClientNetworkInfo(request_count=0)
+
+        self["networks"][network_name].add_failed_request()

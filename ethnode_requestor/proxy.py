@@ -89,7 +89,8 @@ class EthnodeProxy:
                 retry = 0
                 while retry <= MAX_RETRIES:
                     instance = None if self._proxy_only_mode else await self.get_instance()
-
+                    if not instance:
+                        client.add_failed_request(network)
                     try:
                         return await self._handle_request(instance, request)
                     except aiohttp.ClientConnectionError as e:
