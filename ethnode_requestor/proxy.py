@@ -12,9 +12,9 @@ from yapapi.services import Cluster
 from chain_check import get_short_block_info
 from http_server import quart_app, routes
 from service import Ethnode
-from client_info import ClientInfo
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from client_info import ClientInfo, ClientCollection, RequestType
 
 INSTANCES_RETRY_INTERVAL_SEC = 1
 INSTANCES_RETRY_TIMEOUT_SEC = 30
@@ -43,10 +43,10 @@ class EthnodeProxy:
         self._app_task: asyncio.Task = None
         self._proxy_only_mode = proxy_only_mode
         # self._site: Optional[web.TCPSite] = None
-        self._clients = dict()
+        self._clients = ClientCollection()
 
         api_key = "MAaCpE421MddDmzMLcAp"
-        self._clients[api_key] = ClientInfo(api_key)
+        self._clients.add_client(api_key)
 
     def set_cluster(self, cluster: Cluster[Ethnode]):
         self._cluster = cluster
@@ -73,12 +73,10 @@ class EthnodeProxy:
         if not network in allowed_endpoints:
             return web.Response(text="network should be one of " + str(allowed_endpoints))
 
-        client = self._clients.get(token)
-
+        client = self._clients.get_client(token)
 
         if not self._proxy_only_mode:
             if client:
-                client.add_request(network)
                 retry = 0
                 while retry <= MAX_RETRIES:
                     instance = None if self._proxy_only_mode else await self.get_instance()
@@ -92,13 +90,15 @@ class EthnodeProxy:
                             else:
                                 raise Exception("unknown network")
 
-                            client.add_backup_request(network)
+                            client.add_request(network, RequestType.Backup)
                             return res
                         except Exception as ex:
                             logger.error(f"Failed to proxy request {ex}")
-                            client.add_failed_request(network)
+                            client.add_request(network, RequestType.Failed)
                     try:
-                        return await self._handle_request(instance, request)
+                        res = await self._handle_request(instance, request)
+                        client.add_request(network, RequestType.Succeeded)
+                        return res
                     except aiohttp.ClientConnectionError as e:
                         retry += 1
                         logger.warning(
@@ -200,7 +200,7 @@ class EthnodeProxy:
 
     async def _clients_endpoint(self, request: web.Request) -> web.Response:
         # test response
-        return web.Response(text=json.dumps(self._clients), content_type="application/json")
+        return web.Response(text=self._clients.to_json(), content_type="application/json")
 
     async def _instances_endpoint(self, request: web.Request) -> web.Response:
         # test response
