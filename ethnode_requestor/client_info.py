@@ -59,10 +59,10 @@ class ClientInfo:
         minute_format = "%Y-%m-%dT%H:%M:00"
         second_format = "%Y-%m-%dT%H:%M:%S"
 
-        SECONDS_BEFORE = 10
-        MINUTES_BEFORE = 2
-        HOURS_BEFORE = 2
-        DAYS_BEFORE = 2
+        SECONDS_BEFORE = 600
+        MINUTES_BEFORE = 600
+        HOURS_BEFORE = 600
+        DAYS_BEFORE = 600
 
         self.cleanup_history(self.time_buckets_seconds, (current_time - timedelta(seconds=SECONDS_BEFORE)).strftime(second_format))
         self.cleanup_history(self.time_buckets_minutes, (current_time - timedelta(minutes=MINUTES_BEFORE)).strftime(minute_format))
