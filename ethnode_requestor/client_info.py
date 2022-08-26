@@ -1,6 +1,6 @@
 import json
 
-
+d
 class ClientNetworkInfo(dict):
     def __init__(
             self
