@@ -15,6 +15,7 @@ from yapapi import Golem
 
 from db import db_engine
 from model import BaseClass, AppInfo, EthnodeInstance
+from monitor import test_connections_loop
 from proxy import EthnodeProxy
 from service import Ethnode, EthnodePayload
 from strategy import BadNodeFilter
@@ -51,6 +52,7 @@ async def main(
         local_port: int,
 ):
     payload = EthnodePayload(runtime=service_name)
+    monitor_task = asyncio.create_task(test_connections_loop())
 
     async with Golem(
             budget=1.0,
@@ -87,6 +89,7 @@ async def main(
                 ethnode = EthnodeInstance(app=app_id, uuid=instance.id)
                 session.add(ethnode)
                 session.commit()
+                instance.db_id = ethnode.id
 
         proxy.set_cluster(ethnode_cluster)
 
@@ -258,6 +261,7 @@ if __name__ == "__main__":
         staticmethod(_instance_not_stopped),
     )
     patch.start()
+
 
     if args.proxy_only:
         run_golem_example(

@@ -37,14 +37,16 @@ class EthnodeInstance(BaseClass):
     id = Column(Integer, primary_key=True)
     app = Column(Integer, ForeignKey("app.id"), nullable=False)
     uuid = Column(String, nullable=False)
+    start_time = Column(DateTime, default=datetime.utcnow)
+    username = Column(String)
 
 
 class ProviderInstance(BaseClass):
     __tablename__ = "provider"
     id = Column(Integer, primary_key=True)
-    uuid = Column(String)
+    status = Column(String, default="unknown")
+    ethnode = Column(Integer, ForeignKey("ethnode.id"), nullable=False)
     addresses = Column(String)
-    username = Column(String)
     node_expiry = Column(DateTime)
     provider_id = Column(Integer)
     provider_name = Column(String)

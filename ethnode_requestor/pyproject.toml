@@ -16,6 +16,7 @@ dataclasses-json = "^0.5.7"
 psycopg2 = "^2.9.3"
 SQLAlchemy = "^1.4.40"
 SQLAlchemy-Utils = "^0.38.3"
+aiosqlite = "^0.17.0"
 
 
 [tool.poetry.dev-dependencies]
