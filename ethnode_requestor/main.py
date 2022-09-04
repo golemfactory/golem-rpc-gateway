@@ -1,15 +1,20 @@
 import os
 import asyncio
+import sys
+
 import colors
 import requests
 import time
 from datetime import datetime, timezone, timedelta
 from unittest import mock
 
+from sqlalchemy.orm import Session
 from ya_activity.exceptions import ApiException
 from yapapi.services import ServiceState
 from yapapi import Golem
 
+from db import db_engine
+from model import BaseClass, AppInfo
 from proxy import EthnodeProxy
 from service import Ethnode, EthnodePayload
 from strategy import BadNodeFilter
@@ -215,6 +220,14 @@ if __name__ == "__main__":
 
     parser.set_defaults(log_file=f"eth-request-{now}.log")
     args = parser.parse_args()
+
+    BaseClass.metadata.create_all(db_engine)
+
+    app_instance_info = AppInfo(args=" ".join(sys.argv[1:]))
+    with Session(db_engine) as db_session:
+        db_session.add(app_instance_info)
+        db_session.commit()
+
     if args.check_for_yagna:
         max_tries = 15
         for tries in range(0, max_tries):
