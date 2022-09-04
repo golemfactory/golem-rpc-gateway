@@ -14,6 +14,7 @@ aiohttp = "^3.8.1"
 requests = "^2.28.1"
 dataclasses-json = "^0.5.7"
 SQLAlchemy = "^1.4.40"
+psycopg2 = "^2.9.3"
 
 
 [tool.poetry.dev-dependencies]
