@@ -43,4 +43,4 @@ def get_async_db_engine():
 
 
 db_engine = get_db_engine()
-db_async_engine = get_async_db_engine()
+# db_async_engine = get_async_db_engine()
