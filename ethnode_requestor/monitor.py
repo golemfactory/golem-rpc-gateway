@@ -8,11 +8,6 @@ from db import db_engine
 from model import ProviderInstance
 from multiprocessing import Process
 
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-
 async def test_connections():
     with Session(db_engine) as session:
         instances = session.query(ProviderInstance).filter(ProviderInstance.status == "running").all()

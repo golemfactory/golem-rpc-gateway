@@ -153,6 +153,8 @@ class Ethnode(Service):
                 session.commit()
 
         return
+        yield # keep this yield here otherwise function is not properly overloaded
+
     def stop(self):
         self.stopped = True
 
