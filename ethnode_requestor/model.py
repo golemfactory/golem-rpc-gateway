@@ -15,7 +15,7 @@ class SerializationMode(Enum):
 
 
 class AppInfo(BaseClass):
-    __tablename__ = "app_info"
+    __tablename__ = "app"
     id = Column(Integer, primary_key=True)
     args = Column(String, nullable=False)
     start_time = Column(DateTime, default=datetime.utcnow)
@@ -30,6 +30,25 @@ class AppInfo(BaseClass):
             }
         else:
             raise Exception(f"Unknown mode {mode}")
+
+
+class EthnodeInstance(BaseClass):
+    __tablename__ = "ethnode"
+    id = Column(Integer, primary_key=True)
+    app = Column(Integer, ForeignKey("app.id"), nullable=False)
+    uuid = Column(String, nullable=False)
+
+
+class ProviderInstance(BaseClass):
+    __tablename__ = "provider"
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String)
+    addresses = Column(String)
+    username = Column(String)
+    node_expiry = Column(DateTime)
+    provider_id = Column(Integer)
+    provider_name = Column(String)
+
 
 # class PathInfoEntry(BaseClass):
 #     __tablename__ = "path_info_entry"
@@ -64,9 +83,10 @@ class LocalJSONEncoder(json.JSONEncoder):
 
 
 if __name__ == "__main__":
-    pi1 = PathInfoEntry(path_info=1, files_checked=2, files_failed=3, total_size=4)
-    pi2 = PathInfoEntry(path_info=10, files_checked=11, files_failed=12, total_size=13)
+    pass
+    # pi1 = PathInfoEntry(path_info=1, files_checked=2, files_failed=3, total_size=4)
+    # pi2 = PathInfoEntry(path_info=10, files_checked=11, files_failed=12, total_size=13)
 
-    print(json.dumps([pi1, pi2], cls=LocalJSONEncoder, indent=4, mode=SerializationMode.MINIMAL))
-    print(json.dumps([pi1, pi2], cls=LocalJSONEncoder, indent=4, mode=SerializationMode.FULL))
+    # print(json.dumps([pi1, pi2], cls=LocalJSONEncoder, indent=4, mode=SerializationMode.MINIMAL))
+    # print(json.dumps([pi1, pi2], cls=LocalJSONEncoder, indent=4, mode=SerializationMode.FULL))
 

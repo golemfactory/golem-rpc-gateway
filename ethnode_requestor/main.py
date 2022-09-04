@@ -14,7 +14,7 @@ from yapapi.services import ServiceState
 from yapapi import Golem
 
 from db import db_engine
-from model import BaseClass, AppInfo
+from model import BaseClass, AppInfo, EthnodeInstance
 from proxy import EthnodeProxy
 from service import Ethnode, EthnodePayload
 from strategy import BadNodeFilter
@@ -29,10 +29,8 @@ STARTING_TIMEOUT = timedelta(minutes=5)
 # as providers typically won't take offers that expire sooner than 5 minutes in the future
 EXPIRATION_MARGIN = timedelta(minutes=5)
 
-
 RUNNING_TIME_DEFAULT = 316224000
 NODE_RUNNING_TIME_DEFAULT = NodeRunningTimeRange("42000,84000")
-
 
 ACTIVITY_STATE_TERMINATED = "Terminated"
 
@@ -42,6 +40,7 @@ def _instance_not_stopped(service: Ethnode) -> bool:
 
 
 async def main(
+        app_id: int,
         service_name: str,
         num_instances: int,
         running_time: int,
@@ -83,6 +82,12 @@ async def main(
             expiration=expiration,
         )
 
+        for instance in ethnode_cluster.instances:
+            with Session(db_engine) as session:
+                ethnode = EthnodeInstance(app=app_id, uuid=instance.id)
+                session.add(ethnode)
+                session.commit()
+
         proxy.set_cluster(ethnode_cluster)
 
         def available(cluster):
@@ -107,8 +112,6 @@ async def main(
         raise_exception_if_still_starting(ethnode_cluster)
 
         print(colors.cyan("Eth nodes started..."))
-
-
 
         # wait until Ctrl-C
 
@@ -154,7 +157,8 @@ async def main(
 
 
 async def main_no_proxy(args):
-    print(colors.yellow(f"Warning - running in proxy only mode. This is not proper way of running the service. Use for development."))
+    print(colors.yellow(
+        f"Warning - running in proxy only mode. This is not proper way of running the service. Use for development."))
     proxy = EthnodeProxy(None, args.local_port, True)
     await proxy.run()
 
@@ -227,6 +231,7 @@ if __name__ == "__main__":
     with Session(db_engine) as db_session:
         db_session.add(app_instance_info)
         db_session.commit()
+        app_instance_id = app_instance_info.id
 
     if args.check_for_yagna:
         max_tries = 15
@@ -246,8 +251,6 @@ if __name__ == "__main__":
                 print("Check for yagna startup failed: " + str(ex))
                 continue
 
-
-
     print(colors.green(f"Patching yapapi - TODO remove in future version of yapapi"))
 
     patch = mock.patch(
@@ -255,8 +258,6 @@ if __name__ == "__main__":
         staticmethod(_instance_not_stopped),
     )
     patch.start()
-
-
 
     if args.proxy_only:
         run_golem_example(
@@ -266,6 +267,7 @@ if __name__ == "__main__":
     else:
         run_golem_example(
             main(
+                app_id=app_instance_id,
                 service_name=args.service,
                 num_instances=args.num_instances,
                 running_time=args.running_time,
