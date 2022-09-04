@@ -52,7 +52,7 @@ async def main(
         local_port: int,
 ):
     payload = EthnodePayload(runtime=service_name)
-    monitor_task = asyncio.create_task(test_connections_loop())
+    # monitor_task = asyncio.create_task(test_connections_loop())
 
     async with Golem(
             budget=1.0,

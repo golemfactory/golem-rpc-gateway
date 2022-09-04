@@ -147,8 +147,12 @@ class Ethnode(Service):
 
         if not self.failed and self.is_expired:
             with Session(db_engine) as session:
-                session.update(ProviderInstance).where(ProviderInstance.provider_id == self.provider_db_id).values(
-                    status="expired")
+                pi = session.query(ProviderInstance).get(self.provider_db_id)
+                pi.status = "expired"
+                # TODO - change to update query, why the hell it is not working?
+                # session.query(ProviderInstance) \
+                #     .filter(ProviderInstance.provider_id == self.provider_db_id)\
+                #     .update({"status": "expired"}, synchronize_session="fetch")
 
                 session.commit()
 
