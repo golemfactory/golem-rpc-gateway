@@ -96,7 +96,7 @@ class Ethnode(Service):
             self.fail()
             return
 
-        p = ProviderInstance(ethnode=self.db_id, provider_id=self.provider_db_id, provider_name=self.provider_name,
+        p = ProviderInstance(ethnode=self.db_id, provider_id=self.provider_id, provider_name=self.provider_name,
                              node_expiry=self.node_expiry, status="starting")
         with Session(db_engine) as session:
             session.add(p)

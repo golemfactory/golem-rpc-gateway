@@ -48,7 +48,7 @@ class ProviderInstance(BaseClass):
     ethnode = Column(Integer, ForeignKey("ethnode.id"), nullable=False)
     addresses = Column(String)
     node_expiry = Column(DateTime)
-    provider_id = Column(Integer)
+    provider_id = Column(String)
     provider_name = Column(String)
 
 
