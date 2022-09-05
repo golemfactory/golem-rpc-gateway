@@ -1,3 +1,4 @@
+import aiohttp
 import requests
 import datetime
 
@@ -9,9 +10,10 @@ async def get_block_info(url):
         "id": 1
     }
     # todo: change to async api
-    result = requests.post(url, json=post_data)
-    if result.status_code == 200:
-        block = result.json()
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=post_data, timeout=2) as result:
+            if result.status == 200:
+                block = await result.json()
 
     return block["result"]
 
