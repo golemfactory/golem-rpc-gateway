@@ -1,7 +1,9 @@
 import os
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+
 
 def get_postgres_connection_string():
     user = os.environ.get("POSTGRES_USER", "user")
@@ -43,4 +45,8 @@ def get_async_db_engine():
 
 
 db_engine = get_db_engine()
-# db_async_engine = get_async_db_engine()
+db_async_engine = get_async_db_engine()
+async_session = sessionmaker(
+    db_async_engine, expire_on_commit=False, class_=AsyncSession
+)
+

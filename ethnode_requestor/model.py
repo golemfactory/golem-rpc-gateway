@@ -40,6 +40,12 @@ class EthnodeInstance(BaseClass):
     start_time = Column(DateTime, default=datetime.utcnow)
     username = Column(String)
 
+    def to_json(self, mode=SerializationMode.FULL):
+        if mode == SerializationMode.FULL:
+            return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        else:
+            raise Exception(f"Unknown mode {mode}")
+
 
 class ProviderInstance(BaseClass):
     __tablename__ = "provider"
@@ -51,6 +57,11 @@ class ProviderInstance(BaseClass):
     provider_id = Column(String)
     provider_name = Column(String)
 
+    def to_json(self, mode=SerializationMode.FULL):
+        if mode == SerializationMode.FULL:
+            return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        else:
+            raise Exception(f"Unknown mode {mode}")
 
 # class PathInfoEntry(BaseClass):
 #     __tablename__ = "path_info_entry"
@@ -73,7 +84,7 @@ class ProviderInstance(BaseClass):
 
 class LocalJSONEncoder(json.JSONEncoder):
     def __init__(self, *args, **kwargs):
-        self._mode = kwargs.pop('mode') if 'mode' in kwargs else None
+        self._mode = kwargs.pop('mode') if 'mode' in kwargs else SerializationMode.FULL
         super().__init__(*args, **kwargs)
 
     def default(self, obj):
@@ -81,6 +92,11 @@ class LocalJSONEncoder(json.JSONEncoder):
             return obj.isoformat()
         if isinstance(obj, AppInfo):
             return obj.to_json(mode=self._mode)
+        if isinstance(obj, EthnodeInstance):
+            return obj.to_json(mode=self._mode)
+        if isinstance(obj, ProviderInstance):
+            return obj.to_json(mode=self._mode)
+
         return super().default(obj)
 
 
