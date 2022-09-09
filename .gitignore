@@ -5,3 +5,4 @@
 /private_ethnode_config.env
 /private_node_config.env
 /ethnode_requestor/ethnode.sqlite
+/.env
