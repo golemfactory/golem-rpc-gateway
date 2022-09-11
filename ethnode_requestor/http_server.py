@@ -25,7 +25,6 @@ async def test(request):
                         content_type="application/json")
 
 
-
 @routes.get("/app/current")
 async def test(request):
     response = {}
@@ -53,6 +52,7 @@ async def test(request):
 
     return web.Response(text=json.dumps(response, cls=LocalJSONEncoder, mode=SerializationMode.FULL),
                         content_type="application/json")
+
 
 @routes.get("/test")
 async def test(request):
