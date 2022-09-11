@@ -28,11 +28,11 @@ def get_db_engine(is_async=False):
             engine = create_engine(conn_string, echo=False, future=True)
 
     elif db_type == "postgres":
-        conn_string = os.environ.get('POSTGRES_CONN_STRING', get_postgres_connection_string())
+        conn_string = os.environ.get('POSTGRES_CONN_STRING', get_postgres_connection_string(is_async))
         if is_async:
             engine = create_async_engine(conn_string, echo=False, future=True)
         else:
-            engine = create_async_engine(conn_string, echo=False, future=True)
+            engine = create_engine(conn_string, echo=False, future=True)
 
         if not database_exists(engine.url):
             create_database(engine.url)
