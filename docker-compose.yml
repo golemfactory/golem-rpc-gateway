@@ -66,6 +66,7 @@ services:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
       - PGADMIN_CONFIG_MAX_LOGIN_ATTEMPTS=500
+      - SCRIPT_NAME=${PGADMIN_BASE_URL}
     volumes:
       - ./pgadmin:/var/lib/pgadmin
     restart: unless-stopped
