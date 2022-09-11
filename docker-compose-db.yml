@@ -1,25 +1,8 @@
 services:
-  yagna_requestor_node:
-    build:
-      context: yagna_requestor_node
-      dockerfile: Dockerfile
-    image: yagna_requestor_node
-    env_file:
-      - private_node_config.env
-    volumes:
-      - "./yagna_dir:/root/.local/share/yagna"
-    ports:
-      - "3333:3333"
-      - "7464:7464"
-      - "7465:7465"
-    environment:
-      - GSB_URL=tcp://0.0.0.0:7464
-      - YAGNA_API_URL=http://0.0.0.0:7465      
-    command: run.sh
   postgres:
     image: postgres
     restart: on-failure
-    environment:
+    env_file:
       - POSTGRES_USER=dev
       - POSTGRES_PASSWORD=dev_pass
       - POSTGRES_DB=dev
@@ -27,6 +10,7 @@ services:
       - ./postgres:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+
   pgadmin:
     image: dpage/pgadmin4
     ports:
@@ -40,4 +24,4 @@ services:
       - PGADMIN_DEFAULT_PASSWORD=dev_pass
       - PGADMIN_CONFIG_MAX_LOGIN_ATTEMPTS=500
     volumes:
-      - ./pgadmin:/var/lib/pgadmin    
+      - ./pgadmin:/var/lib/pgadmin

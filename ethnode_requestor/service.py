@@ -9,11 +9,14 @@ import string
 from typing import Optional, List
 import uuid
 
+from sqlalchemy.orm import Session
 from yapapi.props import constraint, inf
 from yapapi.payload import Payload
 from yapapi.services import Service, ServiceState
 
 from chain_check import get_short_block_info
+from db import db_engine
+from model import ProviderInstance
 from strategy import BadNodeFilter
 from time_range import NodeRunningTimeRange
 
@@ -35,7 +38,7 @@ class Ethnode(Service):
 
     @staticmethod
     def generate_username() -> str:
-        return str(uuid.uuid4())
+        return "".join([random.choice(string.ascii_letters) for _ in range(8)])
 
     @staticmethod
     def generate_password(length: int) -> str:
@@ -49,8 +52,10 @@ class Ethnode(Service):
     ):
         super().__init__()
         self.uuid = str(uuid.uuid4())
+        self.db_id = -1
+        self.provider_db_id = -1
         self.username = username or self.generate_username()
-        self.password = password or self.generate_password(16)
+        self.password = password or self.generate_password(10)
         self.addresses = list()
         self._node_running_time_range = node_running_time_range
         self.set_expiry()
@@ -72,6 +77,9 @@ class Ethnode(Service):
 
         script = self._ctx.new_script()
 
+        self.username = self.generate_username()
+        self.password = self.generate_password(16)
+
         user_future = script.run("user", "add", self.username, self.password)
         service_future = script.run("service", "info")
 
@@ -87,6 +95,13 @@ class Ethnode(Service):
             )
             self.fail()
             return
+
+        p = ProviderInstance(ethnode=self.db_id, provider_id=self.provider_id, provider_name=self.provider_name,
+                             node_expiry=self.node_expiry, status="starting")
+        with Session(db_engine) as session:
+            session.add(p)
+            session.commit()
+            self.provider_db_id = p.id
 
         for name in service["serverName"]:
             for port in service["portHttp"]:
@@ -108,6 +123,13 @@ class Ethnode(Service):
             self.fail()
             return
 
+        with Session(db_engine) as session:
+            p.addresses = ";".join(self.addresses)
+            p.status = "running"
+            session.add(p)
+            session.commit()
+
+
         addr_str = "\n".join(self.addresses)
         print(f"Good addresses: \n{colors.green(addr_str)}\non {self.provider_name}")
 
@@ -123,8 +145,19 @@ class Ethnode(Service):
         while not self.stopped and not self.failed and not self.is_expired:
             await asyncio.sleep(1)
 
+        if not self.failed and self.is_expired:
+            with Session(db_engine) as session:
+                pi = session.query(ProviderInstance).get(self.provider_db_id)
+                pi.status = "expired"
+                # TODO - change to update query, why the hell it is not working?
+                # session.query(ProviderInstance) \
+                #     .filter(ProviderInstance.provider_id == self.provider_db_id)\
+                #     .update({"status": "expired"}, synchronize_session="fetch")
+
+                session.commit()
+
         return
-        yield
+        yield # keep this yield here otherwise function is not properly overloaded
 
     def stop(self):
         self.stopped = True
