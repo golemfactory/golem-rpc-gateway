@@ -1,0 +1,3 @@
+[submodule "golem-rpc-gateway"]
+	path = golem-rpc-gateway
+	url = https://github.com/golemfactory/golem-rpc-gateway.git
