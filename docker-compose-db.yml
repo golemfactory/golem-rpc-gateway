@@ -3,7 +3,9 @@ services:
     image: postgres
     restart: on-failure
     env_file:
-      - postgres.env
+      - POSTGRES_USER=dev
+      - POSTGRES_PASSWORD=dev_pass
+      - POSTGRES_DB=dev
     volumes:
       - ./postgres:/var/lib/postgresql/data
     ports:
@@ -17,7 +19,9 @@ services:
       - postgres
     depends_on:
       - postgres
-    env_file:
-      - pgadmin.env
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=dev@dev.com
+      - PGADMIN_DEFAULT_PASSWORD=dev_pass
+      - PGADMIN_CONFIG_MAX_LOGIN_ATTEMPTS=500
     volumes:
       - ./pgadmin:/var/lib/pgadmin

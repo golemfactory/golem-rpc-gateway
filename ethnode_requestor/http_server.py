@@ -1,4 +1,5 @@
 import json
+import logging
 
 from aiohttp import web
 from sqlalchemy import func
@@ -13,12 +14,28 @@ routes = web.RouteTableDef()
 quart_app = web.Application()
 
 
+@routes.get("/app/db")
+async def test(request):
+    res = db_engine.name
+    return web.Response(text=json.dumps(res, cls=LocalJSONEncoder, mode=SerializationMode.FULL),
+                        content_type="application/json")
+
+
 @routes.get("/app/current")
 async def test(request):
-    with Session(db_engine) as session:
-        res = session.query(AppInfo).order_by(AppInfo.id.desc()).first()
-    return web.Response(text=json.dumps(res, cls=LocalJSONEncoder, mode=SerializationMode.FULL))
+    response = {}
+    response["db_engine"] = db_engine.name
+    app_info = None
+    try:
+        with Session(db_engine) as session:
+            app_info = session.query(AppInfo).order_by(AppInfo.id.desc()).first()
+    except Exception as ex:
+        logging.error("Error getting app info: " + str(ex))
 
+    response["app_info"] = app_info
+
+    return web.Response(text=json.dumps(response, cls=LocalJSONEncoder, mode=SerializationMode.FULL),
+                        content_type="application/json")
 
 
 @routes.get("/test")
