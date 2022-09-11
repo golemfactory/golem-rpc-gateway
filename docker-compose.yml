@@ -26,6 +26,7 @@ services:
     volumes:
       - "./yagna_dir:/root/.local/share/yagna"
     environment:
+      - MONITOR_DB_ENGINE=${MONITOR_DB_ENGINE}
       - GSB_URL=tcp://0.0.0.0:7464
       - YAGNA_API_URL=http://0.0.0.0:7465
       - YAGNA_APPKEY=${YAGNA_APPKEY}
