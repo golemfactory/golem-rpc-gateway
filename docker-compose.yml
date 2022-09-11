@@ -4,6 +4,10 @@ services:
       context: ethnode_requestor
       dockerfile: Dockerfile
     environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
       - MONITOR_DB_ENGINE=${MONITOR_DB_ENGINE}
       - YAGNA_API_URL=http://yagna_requestor_node:7465
       - YAGNA_MARKET_URL=http://yagna_requestor_node:7465/market-api/v1
