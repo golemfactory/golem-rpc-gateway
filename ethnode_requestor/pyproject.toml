@@ -17,6 +17,7 @@ psycopg2 = "^2.9.3"
 SQLAlchemy = "^1.4.40"
 SQLAlchemy-Utils = "^0.38.3"
 aiosqlite = "^0.17.0"
+asyncpg = "^0.26.0"
 
 
 [tool.poetry.dev-dependencies]
