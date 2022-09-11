@@ -49,6 +49,8 @@ services:
     build:
       context: golem-rpc-frontend
       dockerfile: Dockerfile    
+    ports:
+      - "${FRONTEND_PORT}:3000"
   postgres:
     image: postgres
     environment:
