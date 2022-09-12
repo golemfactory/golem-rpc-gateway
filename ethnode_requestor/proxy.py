@@ -6,8 +6,10 @@ import aiohttp
 from aiohttp import web
 from datetime import datetime, timedelta, timezone
 import random
+import typing
 
 from yapapi.services import Cluster
+from yapapi.agreements_pool import AgreementsPool
 
 from chain_check import get_short_block_info
 from http_server import quart_app, routes
@@ -38,7 +40,7 @@ class EthnodeProxy:
     def __init__(self, port: int, proxy_only_mode):
         self._request_count = 0
         self._request_lock = asyncio.Lock()
-        self._cluster = None
+        self._cluster: Cluster = None
         self._port = port
         self._app_task: asyncio.Task = None
         self._proxy_only_mode = proxy_only_mode
@@ -206,6 +208,31 @@ class EthnodeProxy:
         # test response
         return web.Response(text=json.dumps(await self.get_cluster_info()), content_type="application/json")
 
+    async def _offers_endpoint(self, request: web.Request) -> web.Response:
+
+        def convert_timestamps(d: dict):
+            for k, v in d.items():
+                if isinstance(v, datetime):
+                    d[k] = v.timestamp()
+                elif isinstance(v, dict):
+                    convert_timestamps(v)
+            return d
+
+        agreements_pool: AgreementsPool = self._cluster.service_runner._job.agreements_pool  # noqa
+
+        output = {
+            "offers": [
+                convert_timestamps(o.proposal._proposal.proposal.to_dict())  # noqa
+                for o in agreements_pool._offer_buffer.values()  # noqa
+            ],
+            "agreements": [
+                convert_timestamps(a.agreement_details.raw_details.to_dict())  # noqa
+                for a in agreements_pool._agreements.values()  # noqa
+            ]
+        }
+
+        return web.Response(text=json.dumps(output), content_type="application/json")
+
     async def get_cluster_info(self):
         cv = cluster_view = {}
         if self._cluster:
@@ -249,6 +276,7 @@ class EthnodeProxy:
         quart_app.router.add_route("*", "/hello", handler=self._hello)
         quart_app.router.add_route("*", "/clients", handler=self._clients_endpoint)
         quart_app.router.add_route("*", "/instances", handler=self._instances_endpoint)
+        quart_app.router.add_route("*", "/offers", handler=self._offers_endpoint)
         quart_app.add_routes(routes)
         self._app_task = asyncio.create_task(
             web._run_app(quart_app, port=self._port, handle_signals=False, print=None)  # noqa
