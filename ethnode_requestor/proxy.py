@@ -85,9 +85,14 @@ class EthnodeProxy:
                     instance = None if self._proxy_only_mode else await self.get_instance()
                     if not instance:
                         break
+
                     try:
                         res = await self._handle_instance_request(instance, request)
-                        client.add_request(network, RequestType.Succeeded)
+                        if res.status == 401:
+                            retry += 1
+                            logger.warning("Retrying %s / %s, because of 401", retry, MAX_RETRIES)
+                            instance.fail(blacklist_node=False)
+                            continue
                         return res
                     except aiohttp.ClientConnectionError as e:
                         retry += 1
