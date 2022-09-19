@@ -45,6 +45,12 @@ services:
     restart: unless-stopped
     ports:
       - "${YAGNA_MON_PORT}:3333"
+  frontend:
+    build:
+      context: golem-rpc-frontend
+      dockerfile: Dockerfile    
+    ports:
+      - "${FRONTEND_PORT}:3000"
   postgres:
     image: postgres
     environment:
@@ -70,4 +76,5 @@ services:
     volumes:
       - ./pgadmin:/var/lib/pgadmin
     restart: unless-stopped
+    
       

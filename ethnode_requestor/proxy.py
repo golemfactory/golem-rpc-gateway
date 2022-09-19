@@ -1,6 +1,8 @@
 import os
 import asyncio
 import json
+import sys
+import traceback
 
 import aiohttp
 from aiohttp import web
@@ -27,8 +29,7 @@ from logging import getLogger
 
 logger = getLogger("yapapi...ethnode_requestor.proxy")
 
-allowed_endpoints = ["rinkeby", "polygon"]
-
+allowed_endpoints = ["rinkeby", "polygon", "mumbai"]
 
 env = Environment(
     loader=FileSystemLoader("templates"),
@@ -63,42 +64,29 @@ class EthnodeProxy:
             return instances[self._request_count % len(instances)]
 
     async def _proxy_rpc(self, request: web.Request) -> web.Response:
-        token = request.match_info["token"]
-        network = request.match_info["network"]
-        logger.debug(
-            f"Received a local HTTP request: {request.method} {request.path_qs}, "
-            f"headers={request.headers}"
-        )
-        logger.warning(
-            f"Request: network={network} token={token}"
-        )
-        if not network in allowed_endpoints:
-            return web.Response(text="network should be one of " + str(allowed_endpoints))
+        try:
+            token = request.match_info["token"]
+            network = request.match_info["network"]
+            logger.debug(
+                f"Received a local HTTP request: {request.method} {request.path_qs}, "
+                f"headers={request.headers}"
+            )
+            logger.warning(
+                f"Request: network={network} token={token}"
+            )
+            if not network in allowed_endpoints:
+                return web.Response(text="network should be one of " + str(allowed_endpoints))
 
-        client = self._clients.get_client(token)
+            client = self._clients.get_client(token)
 
-        if not self._proxy_only_mode:
             if client:
                 retry = 0
                 while retry <= MAX_RETRIES:
                     instance = None if self._proxy_only_mode else await self.get_instance()
                     if not instance:
-                        try:
-                            if network == "polygon":
-                                res = await self._handle_request2("https://bor.golem.network", request)
-
-                            elif network == "rinkeby":
-                                res = await self._handle_request2("http://1.geth.testnet.golem.network:55555", request)
-                            else:
-                                raise Exception("unknown network")
-
-                            client.add_request(network, RequestType.Backup)
-                            return res
-                        except Exception as ex:
-                            logger.error(f"Failed to proxy request {ex}")
-                            client.add_request(network, RequestType.Failed)
+                        break
                     try:
-                        res = await self._handle_request(instance, request)
+                        res = await self._handle_instance_request(instance, request)
                         client.add_request(network, RequestType.Succeeded)
                         return res
                     except aiohttp.ClientConnectionError as e:
@@ -112,39 +100,43 @@ class EthnodeProxy:
                         )
                         # fail the provider and restart the instance on a connection failure
                         instance.fail(blacklist_node=False)
-            else:
-                return web.Response(text="client not found, probably wrong token")
-        else:
-            if client:
-                client.add_request(network)
-                retry = 0
-                while retry <= MAX_RETRIES:
-
-                    try:
-                        if network == "polygon":
-                            return await self._handle_request2("https://bor.golem.network", request)
-                        elif network == "rinkeby":
-                            return await self._handle_request2("http://1.geth.testnet.golem.network:55555", request)
-                        else:
-                            raise Exception("unknown network")
-
-                    except aiohttp.ClientConnectionError as e:
-                        retry += 1
-                        logger.warning(
-                            "Retrying %s / %s, because of %s: %s on",
-                            retry,
-                            MAX_RETRIES,
+                    except Exception as e:
+                        logger.error(
+                            "Failed to handle request %s: %s on",
                             type(e).__name__,
                             e,
                         )
-                        # fail the provider and restart the instance on a connection failure
+                        break
 
-                return web.Response(text="Cannot connect to endpoint")
+                try:
+                    if network == "polygon":
+                        res = await self._handle_request("https://bor.golem.network", request)
+                    if network == "mumbai":
+                        res = await self._handle_request("http://141.95.34.226:8545", request)
+                    elif network == "rinkeby":
+                        res = await self._handle_request("http://1.geth.testnet.golem.network:55555", request)
+                    else:
+                        raise Exception("unknown network")
+
+                    client.add_request(network, RequestType.Backup)
+                    return res
+                except Exception as ex:
+                    logger.error(f"Proxy request failed backup request {ex}")
+                    client.add_request(network, RequestType.Failed)
             else:
                 return web.Response(text="client not found, probably wrong token")
+        except Exception as ex:
+            logger.error(f"Unrecoverable error {ex}")
+            traceback.print_exception(*sys.exc_info())
+            return web.Response(text="unrecoverable error")
+
+    async def _handle_instance_request(self, instance: Ethnode, request: web.Request) -> web.Response:
+        address = instance.addresses[random.randint(0, len(instance.addresses) - 1)]
+        logger.debug(f"Using: {instance} / {address}")
+        return await self._handle_request(address, request)
 
     @staticmethod
-    async def _handle_request2(address: str, request: web.Request) -> web.Response:
+    async def _handle_request(address: str, request: web.Request) -> web.Response:
         logger.debug(f"Using: {address}")
         async with aiohttp.ClientSession() as session:
             async with session.request(
@@ -159,33 +151,6 @@ class EthnodeProxy:
                            "Content-Length",
                            "Transfer-Encoding",
                        )
-                }
-                response_kwargs = {
-                    "reason": resp.reason,
-                    "status": resp.status,
-                    "body": await resp.read(),
-                    "headers": headers,
-                }
-                logger.debug(f"response: {response_kwargs}")
-                return web.Response(**response_kwargs)
-
-    @staticmethod
-    async def _handle_request(instance: Ethnode, request: web.Request) -> web.Response:
-        address = instance.addresses[random.randint(0, len(instance.addresses) - 1)]
-        logger.debug(f"Using: {instance} / {address}")
-        async with aiohttp.ClientSession() as session:
-            async with session.request(
-                request.method, address, headers=request.headers, data=request.content
-            ) as resp:
-                headers = {
-                    k: v
-                    for k, v in resp.headers.items()
-                    if k
-                    not in (
-                        "Content-Encoding",
-                        "Content-Length",
-                        "Transfer-Encoding",
-                    )
                 }
                 response_kwargs = {
                     "reason": resp.reason,
@@ -255,7 +220,6 @@ class EthnodeProxy:
         else:
             cv["exists"] = False
         return cv
-
 
     async def _main_endpoint(self, request: web.Request) -> web.Response:
         t = "empty"
