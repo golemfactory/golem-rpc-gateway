@@ -93,6 +93,7 @@ class EthnodeProxy:
                             logger.warning("Retrying %s / %s, because of 401", retry, MAX_RETRIES)
                             instance.fail(blacklist_node=False)
                             continue
+                        client.add_request(network, RequestType.Succeeded)
                         return res
                     except aiohttp.ClientConnectionError as e:
                         retry += 1
