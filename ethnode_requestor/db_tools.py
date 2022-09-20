@@ -1,10 +1,20 @@
 import json
 
+from sqlalchemy import insert
 from sqlalchemy.future import select
 
 import db
 import model
 import asyncio
+
+
+async def insert_request(req: model.DaoRequest):
+    async with db.async_session() as session:
+        session.add(req)
+        #result = await session.execute(
+        #    insert(model.DaoRequest).values(req)
+        #)
+        await session.commit()
 
 
 async def list_all_instances():

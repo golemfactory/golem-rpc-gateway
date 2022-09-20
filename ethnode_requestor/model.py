@@ -2,7 +2,7 @@ from datetime import datetime
 import json
 from enum import Enum
 
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Float
 from sqlalchemy.orm import declarative_base
 
 
@@ -56,6 +56,26 @@ class ProviderInstance(BaseClass):
     node_expiry = Column(DateTime)
     provider_id = Column(String)
     provider_name = Column(String)
+
+    def to_json(self, mode=SerializationMode.FULL):
+        if mode == SerializationMode.FULL:
+            return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        else:
+            raise Exception(f"Unknown mode {mode}")
+
+
+class DaoRequest(BaseClass):
+    __tablename__ = "request"
+    id = Column(Integer, primary_key=True)
+    status = Column(String, default="unknown")
+    payload = Column(String)
+    address = Column(String)
+    response = Column(String)
+    date = Column(DateTime, default=datetime.utcnow)
+    code = Column(Integer)
+    error = Column(String)
+    result_valid = Column(String)
+    response_time = Column(Float)
 
     def to_json(self, mode=SerializationMode.FULL):
         if mode == SerializationMode.FULL:

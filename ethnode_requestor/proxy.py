@@ -14,7 +14,10 @@ from yapapi.services import Cluster
 from yapapi.agreements_pool import AgreementsPool
 
 from chain_check import get_short_block_info
+from db_tools import insert_request
 from http_server import quart_app, routes
+from model import DaoRequest
+from rpcproxy import RpcProxy
 from service import Ethnode
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -64,6 +67,7 @@ class EthnodeProxy:
             return instances[self._request_count % len(instances)]
 
     async def _proxy_rpc(self, request: web.Request) -> web.Response:
+        additional_headers = {"Access-Control-Allow-Origin": "*"}
         try:
             token = request.match_info["token"]
             network = request.match_info["network"]
@@ -86,86 +90,62 @@ class EthnodeProxy:
                     if not instance:
                         break
 
-                    try:
-                        res = await self._handle_instance_request(instance, request)
-                        if res.status == 401:
-                            retry += 1
-                            logger.warning("Retrying %s / %s, because of 401", retry, MAX_RETRIES)
-                            instance.fail(blacklist_node=False)
-                            continue
+                    res = await self._handle_instance_request(instance, request)
+                    #if res.status == 401:
+                    #    retry += 1
+                    #    logger.warning("Retrying %s / %s, because of 401", retry, MAX_RETRIES)
+                    #    instance.fail(blacklist_node=False)
+                    #    continue
+                    #if res.status >= 400:
+                    #    retry += 1
+                    #    logger.warning("Retrying %s / %s, because of %s", retry, MAX_RETRIES, res.status)
+                    #    instance.fail(blacklist_node=False)
+                    #    continue
+
+                    await insert_request(res)
+
+                    if res.result_valid:
                         client.add_request(network, RequestType.Succeeded)
-                        return res
-                    except aiohttp.ClientConnectionError as e:
-                        retry += 1
-                        logger.warning(
-                            "Retrying %s / %s, because of %s: %s on",
-                            retry,
-                            MAX_RETRIES,
-                            type(e).__name__,
-                            e,
-                        )
-                        # fail the provider and restart the instance on a connection failure
+                        return web.Response(content_type="Application/json", headers=additional_headers, text=res.response)
+                    elif res.status != 200:
+                        client.add_request(network, RequestType.Failed)
                         instance.fail(blacklist_node=False)
-                    except Exception as e:
-                        logger.error(
-                            "Failed to handle request %s: %s on",
-                            type(e).__name__,
-                            e,
-                        )
-                        break
 
-                try:
-                    if network == "polygon":
-                        res = await self._handle_request("https://bor.golem.network", request)
-                    if network == "mumbai":
-                        res = await self._handle_request("http://141.95.34.226:8545", request)
-                    elif network == "rinkeby":
-                        res = await self._handle_request("http://1.geth.testnet.golem.network:55555", request)
-                    else:
-                        raise Exception("unknown network")
+                if network == "polygon":
+                    res = await self._handle_request("https://bor.golem.network", request)
+                if network == "mumbai":
+                    res = await self._handle_request("http://141.95.34.226:8545", request)
+                elif network == "rinkeby":
+                    res = await self._handle_request("http://1.geth.testnet.golem.network:55555", request)
+                else:
+                    raise Exception("unknown network")
 
-                    client.add_request(network, RequestType.Backup)
-                    return res
-                except Exception as ex:
-                    logger.error(f"Proxy request failed backup request {ex}")
-                    client.add_request(network, RequestType.Failed)
+                await insert_request(res)
+                if res.result_valid:
+                    client.add_request(network, RequestType.Succeeded)
+                    return web.Response(content_type="Application/json", headers=additional_headers, text=res.response)
+
+                client.add_request(network, RequestType.Failed)
+                return web.Response(text="Backup request failed with status " + str(res.status), status=res.status, headers=additional_headers)
             else:
-                return web.Response(text="client not found, probably wrong token")
+                return web.Response(text="client not found, probably wrong token", headers=additional_headers)
         except Exception as ex:
             logger.error(f"Unrecoverable error {ex}")
             traceback.print_exception(*sys.exc_info())
-            return web.Response(text="unrecoverable error")
+            return web.Response(text="unrecoverable error", headers=additional_headers)
 
-    async def _handle_instance_request(self, instance: Ethnode, request: web.Request) -> web.Response:
+    async def _handle_instance_request(self, instance: Ethnode, request: web.Request) -> DaoRequest:
         address = instance.addresses[random.randint(0, len(instance.addresses) - 1)]
         logger.debug(f"Using: {instance} / {address}")
         return await self._handle_request(address, request)
 
     @staticmethod
-    async def _handle_request(address: str, request: web.Request) -> web.Response:
-        logger.debug(f"Using: {address}")
-        async with aiohttp.ClientSession() as session:
-            async with session.request(
-                    request.method, address, headers=request.headers, data=request.content
-            ) as resp:
-                headers = {
-                    k: v
-                    for k, v in resp.headers.items()
-                    if k
-                       not in (
-                           "Content-Encoding",
-                           "Content-Length",
-                           "Transfer-Encoding",
-                       )
-                }
-                response_kwargs = {
-                    "reason": resp.reason,
-                    "status": resp.status,
-                    "body": await resp.read(),
-                    "headers": headers,
-                }
-                logger.debug(f"response: {response_kwargs}")
-                return web.Response(**response_kwargs)
+    async def _handle_request(address: str, request: web.Request) -> DaoRequest:
+        proxy = RpcProxy()
+        r = await proxy.proxy_call(address, request)
+        return r
+
+
 
     async def _hello(self, request: web.Request) -> web.Response:
         # test response
