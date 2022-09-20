@@ -2,7 +2,7 @@ from datetime import datetime
 import json
 from enum import Enum
 
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Float
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Float, Boolean
 from sqlalchemy.orm import declarative_base
 
 
@@ -76,6 +76,9 @@ class DaoRequest(BaseClass):
     error = Column(String)
     result_valid = Column(String)
     response_time = Column(Float)
+    provider_instance = Column(Integer)
+    client_id = Column(Integer)
+    backup = Column(Boolean, default=False)
 
     def to_json(self, mode=SerializationMode.FULL):
         if mode == SerializationMode.FULL:

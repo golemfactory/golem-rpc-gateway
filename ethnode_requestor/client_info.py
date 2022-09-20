@@ -22,6 +22,7 @@ class ClientNetworkInfo:
 @dataclass_json
 @dataclass
 class ClientInfo:
+    id: int
     api_key: str
     networks: dict = field(default_factory=dict)
     time_buckets_seconds: dict = field(default_factory=dict)
@@ -106,7 +107,7 @@ class ClientCollection:
 
     def add_client(self, api_key: str):
         if api_key not in self.clients:
-            self.clients[api_key] = ClientInfo(api_key)
+            self.clients[api_key] = ClientInfo(1, api_key)
         else:
             raise Exception(f"Client with api key {api_key} already exists")
 

@@ -82,21 +82,28 @@ class EthnodeProxy:
                 return web.Response(text="network should be one of " + str(allowed_endpoints))
 
             client = self._clients.get_client(token)
+            client_id = 1 # todo: fix after adding clients to db
 
             if client:
                 retry = 0
                 while retry <= MAX_RETRIES:
-                    instance = None if self._proxy_only_mode else await self.get_instance()
+                    instance = await self.get_instance()
                     if not instance:
                         break
 
+                    provider_id = instance.provider_db_id
+
                     res = await self._handle_instance_request(instance, request)
-                    #if res.status == 401:
+                    res.provider_instance = provider_id
+                    # todo add client to database
+                    res.client_id = client_id
+
+                    #if res.code == 401:
                     #    retry += 1
                     #    logger.warning("Retrying %s / %s, because of 401", retry, MAX_RETRIES)
                     #    instance.fail(blacklist_node=False)
                     #    continue
-                    #if res.status >= 400:
+                    #if res.code >= 400:
                     #    retry += 1
                     #    logger.warning("Retrying %s / %s, because of %s", retry, MAX_RETRIES, res.status)
                     #    instance.fail(blacklist_node=False)
@@ -107,9 +114,12 @@ class EthnodeProxy:
                     if res.result_valid:
                         client.add_request(network, RequestType.Succeeded)
                         return web.Response(content_type="Application/json", headers=additional_headers, text=res.response)
-                    elif res.status != 200:
+                    elif res.code > 200:
                         client.add_request(network, RequestType.Failed)
                         instance.fail(blacklist_node=False)
+                    elif res.code == 0:
+                        raise Exception(f"Bad request {res.error}")
+
 
                 if network == "polygon":
                     res = await self._handle_request("https://bor.golem.network", request)
@@ -119,6 +129,9 @@ class EthnodeProxy:
                     res = await self._handle_request("http://1.geth.testnet.golem.network:55555", request)
                 else:
                     raise Exception("unknown network")
+
+                # todo add client to database
+                res.client_id = client_id
 
                 await insert_request(res)
                 if res.result_valid:
