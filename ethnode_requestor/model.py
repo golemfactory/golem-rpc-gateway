@@ -76,7 +76,7 @@ class DaoRequest(BaseClass):
     code = Column(Integer)
     timeout = Column(Boolean, default=False)
     error = Column(String)
-    result_valid = Column(String)
+    result_valid = Column(Boolean)
     response_time = Column(Float)
     provider_instance = Column(Integer)
     client_id = Column(Integer)
