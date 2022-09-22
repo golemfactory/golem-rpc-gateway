@@ -84,21 +84,28 @@ class EthnodeProxy:
             client = self._clients.get_client(token)
             client_id = 1  # todo: fix after adding clients to db
 
+            try:
+                data = await request.content.read()
+            except Exception as ex:
+                logger.warning(f"Error reading request content: {ex}")
+                return web.Response(text="Cannot get data from the request", status=400, headers=additional_headers)
+
             if client:
                 retry = 0
-                while retry <= MAX_RETRIES:
+                for retry in range(MAX_RETRIES):
                     instance = await self.get_instance()
                     if not instance:
                         break
 
                     provider_id = instance.provider_db_id
 
-                    res = await self._handle_instance_request(instance, request)
+                    res = await self._handle_instance_request(instance, data)
 
                     res.provider_instance = provider_id
                     # todo add client to database
                     res.client_id = client_id
                     res.backup = False
+
 
                     # if res.code == 401:
                     #    retry += 1
@@ -112,8 +119,12 @@ class EthnodeProxy:
                     #    continue
 
                     await insert_request(res)
+                    if res.timeout:
+                        instance.fail(blacklist_node=False)
+                        continue
 
                     if res.input_error:
+
                         return web.Response(text=res.input_error, status=400, headers=additional_headers)
 
                     if res.result_valid:
@@ -127,11 +138,11 @@ class EthnodeProxy:
                         raise Exception(f"Bad request {res.error}")
 
                 if network == "polygon":
-                    res = await self._handle_request("https://bor.golem.network", request)
+                    res = await self._handle_request("https://bor.golem.network", data)
                 elif network == "mumbai":
-                    res = await self._handle_request("http://141.95.34.226:8545", request)
+                    res = await self._handle_request("http://141.95.34.226:8545", data)
                 elif network == "rinkeby":
-                    res = await self._handle_request("http://1.geth.testnet.golem.network:55555", request)
+                    res = await self._handle_request("http://1.geth.testnet.golem.network:55555", data)
                 else:
                     raise Exception("unknown network")
 
@@ -142,14 +153,16 @@ class EthnodeProxy:
                 if res.input_error:
                     return web.Response(text=res.input_error, status=400, headers=additional_headers)
 
+                if res.timeout:
+                    return web.Response(text="Call timed out", status=504, headers=additional_headers)
+
                 await insert_request(res)
                 if res.result_valid:
                     client.add_request(network, RequestType.Succeeded)
                     return web.Response(content_type="Application/json", headers=additional_headers, text=res.response)
 
                 client.add_request(network, RequestType.Failed)
-                return web.Response(text="Backup request failed with status " + str(res.status), status=res.status,
-                                    headers=additional_headers)
+                return web.Response(text="Backup request failed with status " + str(res.code), status=400, headers=additional_headers)
             else:
                 return web.Response(text="client not found, probably wrong token", headers=additional_headers)
         except Exception as ex:
@@ -157,15 +170,15 @@ class EthnodeProxy:
             traceback.print_exception(*sys.exc_info())
             return web.Response(text="unrecoverable error", headers=additional_headers)
 
-    async def _handle_instance_request(self, instance: Ethnode, request: web.Request) -> DaoRequest:
+    async def _handle_instance_request(self, instance: Ethnode, data) -> DaoRequest:
         address = instance.addresses[random.randint(0, len(instance.addresses) - 1)]
         logger.debug(f"Using: {instance} / {address}")
-        return await self._handle_request(address, request)
+        return await self._handle_request(address, data)
 
     @staticmethod
-    async def _handle_request(address: str, request: web.Request) -> DaoRequest:
+    async def _handle_request(address: str, data) -> DaoRequest:
         proxy = RpcProxy()
-        r = await proxy.proxy_call(address, request)
+        r = await proxy.proxy_call(address, data)
         return r
 
     async def _hello(self, request: web.Request) -> web.Response:

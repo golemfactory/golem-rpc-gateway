@@ -3,6 +3,9 @@ import aiohttp
 import logging
 import json
 import time
+import asyncio
+from aiohttp import ClientTimeout
+
 from model import DaoRequest
 
 
@@ -10,15 +13,18 @@ class RpcProxyException(Exception):
     pass
 
 
+PROXY_TIMEOUT = 15
+
+
 class RpcProxy:
-    async def proxy_call(self, address, request: aiohttp.web.Request):
+    @staticmethod
+    async def proxy_call(address, data):
         r = DaoRequest()
         r.status = "started"
         r.address = address
         r.code = 0
         r.date = datetime.utcnow()
         try:
-            data = await request.content.read()
             r.payload = data.decode()
             jsonrpc = json.loads(r.payload)
         except Exception as ex:
@@ -45,7 +51,7 @@ class RpcProxy:
             else:
                 raise RpcProxyException("Invalid jsonrpc request")
 
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(timeout=ClientTimeout(PROXY_TIMEOUT)) as session:
                 headers = {"Content-Type": "application/json"}
                 request_time_start = time.time()
                 async with session.post(address, headers=headers, json=jsonrpc) as resp:
@@ -56,6 +62,10 @@ class RpcProxy:
                     r.status = "read"
                     r.response = response_binary_data.decode()
                     r.code = resp.status
+                    if resp.status == 504:
+                        r.error = "External server timed out"
+                        r.timeout = True
+                        return r
                     _rpc_result = json.loads(r.response)
                     r.status = "parsed"
                     # todo further parsing
@@ -65,6 +75,9 @@ class RpcProxy:
         except RpcProxyException as ex:
             r.input_error = f"{ex}"
             r.error = f"{ex}"
+        except asyncio.TimeoutError as ex:
+            r.timeout = True
+            r.error = "Internal timeout"
         except Exception as ex:
             r.error = f"Unknown error: {ex}"
 

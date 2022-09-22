@@ -74,6 +74,7 @@ class DaoRequest(BaseClass):
     response = Column(String)
     date = Column(DateTime, default=datetime.utcnow)
     code = Column(Integer)
+    timeout = Column(Boolean, default=False)
     error = Column(String)
     result_valid = Column(String)
     response_time = Column(Float)
