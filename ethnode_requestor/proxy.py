@@ -124,18 +124,17 @@ class EthnodeProxy:
                         continue
 
                     if res.input_error:
-
                         return web.Response(text=res.input_error, status=400, headers=additional_headers)
 
                     if res.result_valid:
                         client.add_request(network, RequestType.Succeeded)
                         return web.Response(content_type="Application/json", headers=additional_headers,
                                             text=res.response)
-                    elif res.code > 200:
+                    if res.code > 200:
                         client.add_request(network, RequestType.Failed)
                         instance.fail(blacklist_node=False)
-                    elif res.code == 0:
-                        raise Exception(f"Bad request {res.error}")
+
+                    # continue trying on other error
 
                 if network == "polygon":
                     res = await self._handle_request("https://bor.golem.network", data)
