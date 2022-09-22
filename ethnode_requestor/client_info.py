@@ -40,8 +40,8 @@ class ClientInfo:
                 if time_str < last_valid_time:
                     keys_to_delete.append(time_str)
 
-        for key in keys_to_delete:
-            del time_bucket[key]
+            for key in keys_to_delete:
+                del time_bucket[key]
 
     def get_or_add_time_bucket(self, time_buckets, network_name, time_str: datetime):
         if network_name not in time_buckets:
