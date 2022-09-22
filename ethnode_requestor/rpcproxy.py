@@ -21,19 +21,27 @@ class RpcProxy:
             data = await request.content.read()
             r.payload = data.decode()
             jsonrpc = json.loads(r.payload)
-        except RpcProxyException as ex:
-            r.error = f"{ex}"
+        except Exception as ex:
+            r.input_error = f"Failed to parse json {ex}"
             return r
-
         try:
             r.status = "sending"
 
+            def check_rpc_entry(entr):
+                if "jsonrpc" not in entr:
+                    raise RpcProxyException("No jsonrpc field")
+                if "method" not in entr:
+                    raise RpcProxyException("No method field")
+                if "params" not in entr:
+                    raise RpcProxyException("No params field")
+                if "id" not in entr:
+                    raise RpcProxyException("No id field")
+
             if isinstance(jsonrpc, list):
-                # batch call
-                pass
+                for entry in jsonrpc:
+                    check_rpc_entry(entry)
             elif isinstance(jsonrpc, dict):
-                # single call
-                pass
+                check_rpc_entry(jsonrpc)
             else:
                 raise RpcProxyException("Invalid jsonrpc request")
 
@@ -55,6 +63,7 @@ class RpcProxy:
                     r.status = "ok"
 
         except RpcProxyException as ex:
+            r.input_error = f"{ex}"
             r.error = f"{ex}"
         except Exception as ex:
             r.error = f"Unknown error: {ex}"

@@ -82,7 +82,7 @@ class EthnodeProxy:
                 return web.Response(text="network should be one of " + str(allowed_endpoints))
 
             client = self._clients.get_client(token)
-            client_id = 1 # todo: fix after adding clients to db
+            client_id = 1  # todo: fix after adding clients to db
 
             if client:
                 retry = 0
@@ -94,16 +94,18 @@ class EthnodeProxy:
                     provider_id = instance.provider_db_id
 
                     res = await self._handle_instance_request(instance, request)
+
                     res.provider_instance = provider_id
                     # todo add client to database
                     res.client_id = client_id
+                    res.backup = False
 
-                    #if res.code == 401:
+                    # if res.code == 401:
                     #    retry += 1
                     #    logger.warning("Retrying %s / %s, because of 401", retry, MAX_RETRIES)
                     #    instance.fail(blacklist_node=False)
                     #    continue
-                    #if res.code >= 400:
+                    # if res.code >= 400:
                     #    retry += 1
                     #    logger.warning("Retrying %s / %s, because of %s", retry, MAX_RETRIES, res.status)
                     #    instance.fail(blacklist_node=False)
@@ -111,19 +113,22 @@ class EthnodeProxy:
 
                     await insert_request(res)
 
+                    if res.input_error:
+                        return web.Response(text=res.input_error, status=400, headers=additional_headers)
+
                     if res.result_valid:
                         client.add_request(network, RequestType.Succeeded)
-                        return web.Response(content_type="Application/json", headers=additional_headers, text=res.response)
+                        return web.Response(content_type="Application/json", headers=additional_headers,
+                                            text=res.response)
                     elif res.code > 200:
                         client.add_request(network, RequestType.Failed)
                         instance.fail(blacklist_node=False)
                     elif res.code == 0:
                         raise Exception(f"Bad request {res.error}")
 
-
                 if network == "polygon":
                     res = await self._handle_request("https://bor.golem.network", request)
-                if network == "mumbai":
+                elif network == "mumbai":
                     res = await self._handle_request("http://141.95.34.226:8545", request)
                 elif network == "rinkeby":
                     res = await self._handle_request("http://1.geth.testnet.golem.network:55555", request)
@@ -132,6 +137,10 @@ class EthnodeProxy:
 
                 # todo add client to database
                 res.client_id = client_id
+                res.backup = True
+
+                if res.input_error:
+                    return web.Response(text=res.input_error, status=400, headers=additional_headers)
 
                 await insert_request(res)
                 if res.result_valid:
@@ -139,7 +148,8 @@ class EthnodeProxy:
                     return web.Response(content_type="Application/json", headers=additional_headers, text=res.response)
 
                 client.add_request(network, RequestType.Failed)
-                return web.Response(text="Backup request failed with status " + str(res.status), status=res.status, headers=additional_headers)
+                return web.Response(text="Backup request failed with status " + str(res.status), status=res.status,
+                                    headers=additional_headers)
             else:
                 return web.Response(text="client not found, probably wrong token", headers=additional_headers)
         except Exception as ex:
@@ -157,8 +167,6 @@ class EthnodeProxy:
         proxy = RpcProxy()
         r = await proxy.proxy_call(address, request)
         return r
-
-
 
     async def _hello(self, request: web.Request) -> web.Response:
         # test response

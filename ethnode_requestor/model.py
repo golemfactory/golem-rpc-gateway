@@ -68,6 +68,7 @@ class DaoRequest(BaseClass):
     __tablename__ = "request"
     id = Column(Integer, primary_key=True)
     status = Column(String, default="unknown")
+    input_error = Column(String)
     payload = Column(String)
     address = Column(String)
     response = Column(String)
