@@ -14,7 +14,10 @@ from yapapi.services import Cluster
 from yapapi.agreements_pool import AgreementsPool
 
 from chain_check import get_short_block_info
-from http_server import quart_app, routes
+from db_tools import insert_request
+from http_server import aiohttp_app, routes
+from model import DaoRequest
+from rpcproxy import RpcProxy
 from service import Ethnode
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -64,6 +67,7 @@ class EthnodeProxy:
             return instances[self._request_count % len(instances)]
 
     async def _proxy_rpc(self, request: web.Request) -> web.Response:
+        additional_headers = {"Access-Control-Allow-Origin": "*"}
         try:
             token = request.match_info["token"]
             network = request.match_info["network"]
@@ -78,94 +82,104 @@ class EthnodeProxy:
                 return web.Response(text="network should be one of " + str(allowed_endpoints))
 
             client = self._clients.get_client(token)
+            client_id = 1  # todo: fix after adding clients to db
+
+            try:
+                data = await request.content.read()
+            except Exception as ex:
+                logger.warning(f"Error reading request content: {ex}")
+                return web.Response(text="Cannot get data from the request", status=400, headers=additional_headers)
 
             if client:
                 retry = 0
-                while retry <= MAX_RETRIES:
-                    instance = None if self._proxy_only_mode else await self.get_instance()
+                for retry in range(MAX_RETRIES):
+                    instance = await self.get_instance()
                     if not instance:
                         break
 
-                    try:
-                        res = await self._handle_instance_request(instance, request)
-                        if res.status == 401:
-                            retry += 1
-                            logger.warning("Retrying %s / %s, because of 401", retry, MAX_RETRIES)
-                            instance.fail(blacklist_node=False)
-                            continue
-                        client.add_request(network, RequestType.Succeeded)
-                        return res
-                    except aiohttp.ClientConnectionError as e:
-                        retry += 1
-                        logger.warning(
-                            "Retrying %s / %s, because of %s: %s on",
-                            retry,
-                            MAX_RETRIES,
-                            type(e).__name__,
-                            e,
-                        )
-                        # fail the provider and restart the instance on a connection failure
+                    provider_id = instance.provider_db_id
+
+                    res = await self._handle_instance_request(instance, data)
+
+                    res.provider_instance = provider_id
+                    # todo add client to database
+                    res.client_id = client_id
+                    res.backup = False
+
+
+                    # if res.code == 401:
+                    #    retry += 1
+                    #    logger.warning("Retrying %s / %s, because of 401", retry, MAX_RETRIES)
+                    #    instance.fail(blacklist_node=False)
+                    #    continue
+                    # if res.code >= 400:
+                    #    retry += 1
+                    #    logger.warning("Retrying %s / %s, because of %s", retry, MAX_RETRIES, res.status)
+                    #    instance.fail(blacklist_node=False)
+                    #    continue
+
+                    await insert_request(res)
+                    if res.timeout:
                         instance.fail(blacklist_node=False)
-                    except Exception as e:
-                        logger.error(
-                            "Failed to handle request %s: %s on",
-                            type(e).__name__,
-                            e,
-                        )
-                        break
+                        continue
 
-                try:
-                    if network == "polygon":
-                        res = await self._handle_request("https://bor.golem.network", request)
-                    if network == "mumbai":
-                        res = await self._handle_request("http://141.95.34.226:8545", request)
-                    elif network == "rinkeby":
-                        res = await self._handle_request("http://1.geth.testnet.golem.network:55555", request)
-                    else:
-                        raise Exception("unknown network")
+                    if res.input_error:
 
-                    client.add_request(network, RequestType.Backup)
-                    return res
-                except Exception as ex:
-                    logger.error(f"Proxy request failed backup request {ex}")
-                    client.add_request(network, RequestType.Failed)
+                        return web.Response(text=res.input_error, status=400, headers=additional_headers)
+
+                    if res.result_valid:
+                        client.add_request(network, RequestType.Succeeded)
+                        return web.Response(content_type="Application/json", headers=additional_headers,
+                                            text=res.response)
+                    elif res.code > 200:
+                        client.add_request(network, RequestType.Failed)
+                        instance.fail(blacklist_node=False)
+                    elif res.code == 0:
+                        raise Exception(f"Bad request {res.error}")
+
+                if network == "polygon":
+                    res = await self._handle_request("https://bor.golem.network", data)
+                elif network == "mumbai":
+                    res = await self._handle_request("http://141.95.34.226:8545", data)
+                elif network == "rinkeby":
+                    res = await self._handle_request("http://1.geth.testnet.golem.network:55555", data)
+                else:
+                    raise Exception("unknown network")
+
+                # todo add client to database
+                res.client_id = client_id
+                res.backup = True
+
+                if res.input_error:
+                    return web.Response(text=res.input_error, status=400, headers=additional_headers)
+
+                if res.timeout:
+                    return web.Response(text="Call timed out", status=504, headers=additional_headers)
+
+                await insert_request(res)
+                if res.result_valid:
+                    client.add_request(network, RequestType.Succeeded)
+                    return web.Response(content_type="Application/json", headers=additional_headers, text=res.response)
+
+                client.add_request(network, RequestType.Failed)
+                return web.Response(text="Backup request failed with status " + str(res.code), status=400, headers=additional_headers)
             else:
-                return web.Response(text="client not found, probably wrong token")
+                return web.Response(text="client not found, probably wrong token", headers=additional_headers)
         except Exception as ex:
             logger.error(f"Unrecoverable error {ex}")
             traceback.print_exception(*sys.exc_info())
-            return web.Response(text="unrecoverable error")
+            return web.Response(text="unrecoverable error", headers=additional_headers)
 
-    async def _handle_instance_request(self, instance: Ethnode, request: web.Request) -> web.Response:
+    async def _handle_instance_request(self, instance: Ethnode, data) -> DaoRequest:
         address = instance.addresses[random.randint(0, len(instance.addresses) - 1)]
         logger.debug(f"Using: {instance} / {address}")
-        return await self._handle_request(address, request)
+        return await self._handle_request(address, data)
 
     @staticmethod
-    async def _handle_request(address: str, request: web.Request) -> web.Response:
-        logger.debug(f"Using: {address}")
-        async with aiohttp.ClientSession() as session:
-            async with session.request(
-                    request.method, address, headers=request.headers, data=request.content
-            ) as resp:
-                headers = {
-                    k: v
-                    for k, v in resp.headers.items()
-                    if k
-                       not in (
-                           "Content-Encoding",
-                           "Content-Length",
-                           "Transfer-Encoding",
-                       )
-                }
-                response_kwargs = {
-                    "reason": resp.reason,
-                    "status": resp.status,
-                    "body": await resp.read(),
-                    "headers": headers,
-                }
-                logger.debug(f"response: {response_kwargs}")
-                return web.Response(**response_kwargs)
+    async def _handle_request(address: str, data) -> DaoRequest:
+        proxy = RpcProxy()
+        r = await proxy.proxy_call(address, data)
+        return r
 
     async def _hello(self, request: web.Request) -> web.Response:
         # test response
@@ -241,15 +255,15 @@ class EthnodeProxy:
         fashion
         """
 
-        quart_app.router.add_route("*", "/", handler=self._main_endpoint)
-        quart_app.router.add_route("*", "/rpc/{network}/{token}", handler=self._proxy_rpc)
-        quart_app.router.add_route("*", "/hello", handler=self._hello)
-        quart_app.router.add_route("*", "/clients", handler=self._clients_endpoint)
-        quart_app.router.add_route("*", "/instances", handler=self._instances_endpoint)
-        quart_app.router.add_route("*", "/offers", handler=self._offers_endpoint)
-        quart_app.add_routes(routes)
+        aiohttp_app.router.add_route("*", "/", handler=self._main_endpoint)
+        aiohttp_app.router.add_route("*", "/rpc/{network}/{token}", handler=self._proxy_rpc)
+        aiohttp_app.router.add_route("*", "/hello", handler=self._hello)
+        aiohttp_app.router.add_route("*", "/clients", handler=self._clients_endpoint)
+        aiohttp_app.router.add_route("*", "/instances", handler=self._instances_endpoint)
+        aiohttp_app.router.add_route("*", "/offers", handler=self._offers_endpoint)
+        aiohttp_app.add_routes(routes)
         self._app_task = asyncio.create_task(
-            web._run_app(quart_app, port=self._port, handle_signals=False, print=None)  # noqa
+            web._run_app(aiohttp_app, port=self._port, handle_signals=False, print=None)  # noqa
         )
 
         # runner = web.ServerRunner(web.Server(self._request_handler))  # type: ignore

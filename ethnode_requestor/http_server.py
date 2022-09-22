@@ -15,7 +15,7 @@ from model import AppInfo, SerializationMode, LocalJSONEncoder, ProviderInstance
 from service import Ethnode
 
 routes = web.RouteTableDef()
-quart_app = web.Application()
+aiohttp_app = web.Application()
 
 
 @routes.get("/app/db")
