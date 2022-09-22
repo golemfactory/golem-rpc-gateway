@@ -15,7 +15,7 @@ from yapapi.agreements_pool import AgreementsPool
 
 from chain_check import get_short_block_info
 from db_tools import insert_request
-from http_server import quart_app, routes
+from http_server import aiohttp_app, routes
 from model import DaoRequest
 from rpcproxy import RpcProxy
 from service import Ethnode
@@ -242,15 +242,15 @@ class EthnodeProxy:
         fashion
         """
 
-        quart_app.router.add_route("*", "/", handler=self._main_endpoint)
-        quart_app.router.add_route("*", "/rpc/{network}/{token}", handler=self._proxy_rpc)
-        quart_app.router.add_route("*", "/hello", handler=self._hello)
-        quart_app.router.add_route("*", "/clients", handler=self._clients_endpoint)
-        quart_app.router.add_route("*", "/instances", handler=self._instances_endpoint)
-        quart_app.router.add_route("*", "/offers", handler=self._offers_endpoint)
-        quart_app.add_routes(routes)
+        aiohttp_app.router.add_route("*", "/", handler=self._main_endpoint)
+        aiohttp_app.router.add_route("*", "/rpc/{network}/{token}", handler=self._proxy_rpc)
+        aiohttp_app.router.add_route("*", "/hello", handler=self._hello)
+        aiohttp_app.router.add_route("*", "/clients", handler=self._clients_endpoint)
+        aiohttp_app.router.add_route("*", "/instances", handler=self._instances_endpoint)
+        aiohttp_app.router.add_route("*", "/offers", handler=self._offers_endpoint)
+        aiohttp_app.add_routes(routes)
         self._app_task = asyncio.create_task(
-            web._run_app(quart_app, port=self._port, handle_signals=False, print=None)  # noqa
+            web._run_app(aiohttp_app, port=self._port, handle_signals=False, print=None)  # noqa
         )
 
         # runner = web.ServerRunner(web.Server(self._request_handler))  # type: ignore
