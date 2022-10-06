@@ -1,6 +1,9 @@
+import os
+import requests
 import json
 import logging
 
+import aiohttp
 from aiohttp import web
 from sqlalchemy import func
 from sqlalchemy.future import select
@@ -52,6 +55,19 @@ async def test(request):
 
     return web.Response(text=json.dumps(response, cls=LocalJSONEncoder, mode=SerializationMode.FULL),
                         content_type="application/json")
+
+
+@routes.get("/yagna")
+async def test(request):
+    # todo: probably cache this request
+    url = os.getenv("YAGNA_MONITOR_URL") or 'http://127.0.0.1:3333'
+    resp = requests.get(url=url)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, timeout=2) as result:
+            if result.status == 200:
+                return web.Response(text=await result.text(), content_type="application/json")
+
+    return web.Response(text="Failed to get yagna info")
 
 
 @routes.get("/test")

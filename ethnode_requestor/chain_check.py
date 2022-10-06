@@ -25,7 +25,6 @@ async def get_block_info(url):
         "params": ["latest", False],
         "id": 1
     }
-    # todo: change to async api
     async with aiohttp.ClientSession() as session:
         async with session.post(url, json=post_data, timeout=2) as result:
             if result.status == 200:
