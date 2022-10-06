@@ -18,6 +18,7 @@ services:
       - GATEWAY_BASE_URL=${GATEWAY_BASE_URL}
       - SUBNET=${SUBNET}
       - NUM_INSTANCES=${NUM_INSTANCES}
+      - ALLOWED_ENDPOINT=${ALLOWED_ENDPOINT}
     command: run.sh
     restart: unless-stopped
     ports:

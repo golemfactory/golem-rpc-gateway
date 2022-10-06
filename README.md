@@ -56,6 +56,7 @@ ETHNODE_PORT=9001
 GATEWAY_BASE_URL=https://your.server/api
 SUBNET=golem_test_subnet
 NUM_INSTANCES=3
+ALLOWED_ENDPOINT=mumbai
 # yagna and gateway
 YAGNA_MON_PORT=3334
 YAGNA_APPKEY=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
