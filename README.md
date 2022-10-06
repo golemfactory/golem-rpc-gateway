@@ -20,19 +20,58 @@ Install poetry
 `poetry run python ethnode_requestor`
 
 
-### Production
+### Deploying to production
 
-docker-compose.yml is production configuration for deployment
+Warning - project contains submodule for frontend:
+
+Sample script for updating submodules
+
+```bash
+#!/bin/bash
+echo "Git pull and submodules pull"
+
+git pull
+git submodule update
+git submodule foreach git checkout main
+git submodule foreach git pull origin main
+```
+
+docker-compose.yml is production configuration for docker-compose
+
+Sample .env file 
 
 ```
-docker-compose up
+# postgres
+POSTGRES_USER=postgres 
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=gateway
+# pgadmin
+PGADMIN_DEFAULT_EMAIL=default@gmail.com
+PGADMIN_DEFAULT_PASSWORD=pgadminpass
+PGADMIN_PORT=5050
+PGADMIN_BASE_URL=/mumbai-db
+# gateway
+MONITOR_DB_ENGINE=postgres
+ETHNODE_PORT=9001
+GATEWAY_BASE_URL=https://your.server/api
+SUBNET=golem_test_subnet
+NUM_INSTANCES=3
+# yagna and gateway
+YAGNA_MON_PORT=3334
+YAGNA_APPKEY=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+# yagna only
+YAGNA_AUTOCONF_ID_SECRET=YOUR_PRIVATE_ETH_KEY
+ADDR=YOUR_PRIVATE_ADDR_ETH
+# frontend
+FRONTEND_PORT=5031
 ```
 
-After stopping, you can remove all data using:
+```
+Additionaly create pg_admin directory for pg_admin
+Owner ID of that folder 5050:5050 (user that pg admin is using in docker)
+```
 
-```
-docker-compose rm -fsv
-```
+Additional nginx setup is needed for your server to work
 
 ## Architecture outline
 
