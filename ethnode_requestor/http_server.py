@@ -70,6 +70,13 @@ async def test(request):
     return web.Response(text="Failed to get yagna info")
 
 
+@routes.get("/test_client_endpoint")
+async def test(request):
+    base_url = os.getenv("GATEWAY_BASE_URL") or 'http://127.0.0.1:8545'
+    allowed_endpoint = os.getenv("ALLOWED_ENDPOINT") or 'mumbai'
+
+    return web.Response(text=f"{base_url}/rpc/{allowed_endpoint}/MAaCpE421MddDmzMLcAp")
+
 @routes.get("/test")
 async def test(request):
     return web.Response(text="whatever")

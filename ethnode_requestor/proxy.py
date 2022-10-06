@@ -32,13 +32,14 @@ from logging import getLogger
 
 logger = getLogger("yapapi...ethnode_requestor.proxy")
 
-allowed_endpoints = ["rinkeby", "polygon", "mumbai"]
+#allowed_endpoints = ["rinkeby", "polygon", "mumbai"]
 
 env = Environment(
     loader=FileSystemLoader("templates"),
     autoescape=select_autoescape()
 )
 
+allowed_endpoint = os.getenv("ALLOWED_ENDPOINT") or 'mumbai'
 
 class EthnodeProxy:
     def __init__(self, port: int, proxy_only_mode):
@@ -78,8 +79,10 @@ class EthnodeProxy:
             logger.warning(
                 f"Request: network={network} token={token}"
             )
-            if not network in allowed_endpoints:
-                return web.Response(text="network should be one of " + str(allowed_endpoints))
+            if network != allowed_endpoint:
+                return web.Response(text="Only network supported for now is " + str(network))
+
+
 
             client = self._clients.get_client(token)
             client_id = 1  # todo: fix after adding clients to db
