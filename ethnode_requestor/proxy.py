@@ -40,6 +40,10 @@ env = Environment(
 )
 
 allowed_endpoint = os.getenv("ALLOWED_ENDPOINT") or 'mumbai'
+polygon_backup_rpc_url = os.getenv("POLYGON_BACKUP_RPC") or "https://bor.golem.network"
+mumbai_backup_rpc_url = os.getenv("MUMBAI_BACKUP_RPC") or "https://rpc-mumbai.maticvigil.com"
+rinkeby_rpc_url = os.getenv("RINKEBY_BACKUP_RPC") or "http://1.geth.testnet.golem.network:55555"
+
 
 class EthnodeProxy:
     def __init__(self, port: int, proxy_only_mode):
@@ -93,6 +97,7 @@ class EthnodeProxy:
                 logger.warning(f"Error reading request content: {ex}")
                 return web.Response(text="Cannot get data from the request", status=400, headers=additional_headers)
 
+            compare_request = None
             if client:
                 retry = 0
                 for retry in range(MAX_RETRIES):
@@ -130,9 +135,10 @@ class EthnodeProxy:
                         return web.Response(text=res.input_error, status=400, headers=additional_headers)
 
                     if res.result_valid:
+                        compare_request = res
                         client.add_request(network, RequestType.Succeeded)
-                        return web.Response(content_type="Application/json", headers=additional_headers,
-                                            text=res.response)
+                        break
+
                     if res.code > 200:
                         client.add_request(network, RequestType.Failed)
                         instance.fail(blacklist_node=False)
@@ -140,17 +146,20 @@ class EthnodeProxy:
                     # continue trying on other error
 
                 if network == "polygon":
-                    res = await self._handle_request("https://bor.golem.network", data)
+                    res = await self._handle_request(polygon_backup_rpc_url, data)
                 elif network == "mumbai":
-                    res = await self._handle_request("http://141.95.34.226:8545", data)
+                    res = await self._handle_request(mumbai_backup_rpc_url, data)
                 elif network == "rinkeby":
-                    res = await self._handle_request("http://1.geth.testnet.golem.network:55555", data)
+                    res = await self._handle_request(rinkeby_rpc_url, data)
                 else:
                     raise Exception("unknown network")
 
                 # todo add client to database
                 res.client_id = client_id
                 res.backup = True
+
+                if compare_request:
+                    # TODO: compare results
 
                 if res.input_error:
                     return web.Response(text=res.input_error, status=400, headers=additional_headers)
