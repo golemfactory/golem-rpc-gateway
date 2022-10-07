@@ -155,7 +155,7 @@ only this specific requestor can utilize the given provider's Ethereum node.
 
 ##### Ethereum node
 
-An Ethereum using `geth` or `bor` to connect to the desired Ethereum blockchain.
+An Ethereum node, running `geth` or `bor`, connected to the desired Ethereum blockchain.
 
 ##### HTTP runtime
 
