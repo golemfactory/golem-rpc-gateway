@@ -81,6 +81,7 @@ class DaoRequest(BaseClass):
     provider_instance = Column(Integer)
     client_id = Column(Integer)
     backup = Column(Boolean, default=False)
+    compare_result = Column(String)
 
     def to_json(self, mode=SerializationMode.FULL):
         if mode == SerializationMode.FULL:

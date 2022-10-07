@@ -160,6 +160,29 @@ class EthnodeProxy:
 
                 if compare_request:
                     # TODO: compare results
+                    if not compare_request.result_valid and not res.result_valid:
+                        res.compare_result = "both_failed"
+                    elif not compare_request.result_valid and res.result_valid:
+                        res.compare_result = "backup_succeeded"
+                    elif compare_request.result_valid and not res.result_valid:
+                        res.compare_result = "backup_failed"
+                    else:
+                        try:
+                            left = json.loads(compare_request.response)
+                            right = json.loads(res.response)
+                            if right["error"] and left["error"]:
+                                res.compare_result = "both_returned_error"
+                            elif right["error"]:
+                                res.compare_result = "backup_returned_error"
+                            elif left["error"]:
+                                res.compare_result = "backup_returned_result"
+                            elif left["result"] == right["result"]:
+                                res.compare_result = "both_succeeded_same_result"
+                            else:
+                                res.compare_result = "both_succeeded_different_result"
+                        except Exception as _ex:
+                            pass
+                            res.compare_result = "both_succeeded_comparison_failed"
 
                 if res.input_error:
                     return web.Response(text=res.input_error, status=400, headers=additional_headers)
