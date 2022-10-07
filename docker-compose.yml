@@ -19,6 +19,8 @@ services:
       - SUBNET=${SUBNET}
       - NUM_INSTANCES=${NUM_INSTANCES}
       - ALLOWED_ENDPOINT=${ALLOWED_ENDPOINT}
+      - POLYGON_BACKUP_RPC=${POLYGON_BACKUP_RPC}
+      - MUMBAI_BACKUP_RPC=${MUMBAI_BACKUP_RPC}
     command: run.sh
     restart: unless-stopped
     ports:
