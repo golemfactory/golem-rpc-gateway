@@ -22,7 +22,7 @@ Install poetry
 
 ### Deploying to production
 
-Warning - project contains submodule for frontend:
+Warning - project contains a submodule for the frontend:
 
 Sample script for updating submodules
 
@@ -80,7 +80,7 @@ The most general premise is that the platform delivered by Golem can serve as
 gateway that the Reality NFT clients can use to connect to the Ethereum network,
 without relying on a self-maintained network of Ethereum nodes.
 
-![Architecture outline](architecture_outline.svg)
+![Architecture outline](docs/architecture_outline.svg)
 
 ### Reality NFT clients
 
@@ -103,6 +103,43 @@ within its pool of providers. It ensures that any unresponsive nodes are marked 
 and that new nodes are arranged-for instead in order to keep the desired size of the 
 pool.
 
+#### Requestor gateway components
+
+![Requestor agent](docs/requestor_agent.svg)
+
+##### yapapi requestor
+
+The central component of the requestor agent is implemented as a yapapi-based requestor.
+It's responsible for provisioning and maintaining the requested number of providers
+through Golem Network. Additionally, it spawns an HTTP server which serves as the
+monitoring API and as the front-end for the proxy that routes the traffic from the
+clients to the providers.
+
+##### RPC proxy
+
+Processes the requests coming from the clients, using the provider addresses supplied
+by the requestor.
+
+##### DB back-end
+
+Based on either SQLite or PostgreSQL, the back-end is used by the yapapi requestor to
+store information about the providers that the requestor signed agreements with and
+about the Ethereum Nodes that run on them.
+
+Additionally, it stores all the requests that pass through the RPC proxy for debugging
+purposes.
+
+##### Agent monitor REST API
+
+Allows external clients to inspect the state of the requestor through a simple REST API.
+
+
+##### Yagna daemon
+
+Finally, the yagna daemon is used as a gateway to the Golem Network, implementing the
+network's protocol.
+
+
 ### Golem providers
 
 Each of the providers runs an Ethereum node and publishes an offer which advertises their
@@ -112,7 +149,24 @@ After an agreement is struck between a requestor and a provider, the provider's 
 generates authentication credentials that are sent to the given requestor. That way,
 only this specific requestor can utilize the given provider's Ethereum node.
 
-https://github.com/golemfactory/ya-runtime-http-auth
+![Provider agent](docs/provider_agent.svg)
+
+#### Provider-end components
+
+##### Ethereum node
+
+An Ethereum node, running `geth` or `bor`, connected to the desired Ethereum blockchain.
+
+##### HTTP runtime
+
+The runtime used by the provider is [ya-runtime-http-auth](https://github.com/golemfactory/ya-runtime-http-auth),
+which is a generic runtime allowing stand-alone HTTP services to be used as execution
+back-ends in the Golem Network.
+
+##### Yagna daemon
+
+Symmetrically to the requestor node, a yagna daemon is required on the provider's end to
+serve a gateway to the Golem Network.
 
 ### Connectivity between requestors and providers
 
@@ -120,7 +174,5 @@ The requestor and provider agents establish communication between each other acc
 to the protocol used by the Golem Network.
 
 However, once the nodes enter a mutual agreements, the provider creates endpoint that
-can be used to access the provider node. This endpoint is then used by client to access node. 
-Look at ya-runtime-http-auth documentation for more details. 
-
-
+can be used to access the provider node. This endpoint is then used by client to access node.
+Look at `ya-runtime-http-auth` documentation for more details.
