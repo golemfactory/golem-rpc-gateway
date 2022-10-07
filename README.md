@@ -112,12 +112,15 @@ After an agreement is struck between a requestor and a provider, the provider's 
 generates authentication credentials that are sent to the given requestor. That way,
 only this specific requestor can utilize the given provider's Ethereum node.
 
+https://github.com/golemfactory/ya-runtime-http-auth
+
 ### Connectivity between requestors and providers
 
 The requestor and provider agents establish communication between each other according 
 to the protocol used by the Golem Network.
 
-However, once the nodes enter a mutual agreements, the requestor creates a VPN on top
-of the Golem Network through which the connections between the requestor's HTTP proxy 
-and the providers' Ethereum nodes are performed.
+However, once the nodes enter a mutual agreements, the provider creates endpoint that
+can be used to access the provider node. This endpoint is then used by client to access node. 
+Look at ya-runtime-http-auth documentation for more details. 
+
 
