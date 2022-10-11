@@ -5,7 +5,7 @@ import datetime
 async def get_chain_id(url):
     post_data = {
         "jsonrpc": "2.0",
-        "method": "web3_clientVersion",
+        "method": "eth_chainId",
         "params": [],
         "id": 1
     }
