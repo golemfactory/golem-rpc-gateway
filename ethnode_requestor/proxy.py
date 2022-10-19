@@ -170,11 +170,11 @@ class EthnodeProxy:
                         try:
                             left = json.loads(compare_request.response)
                             right = json.loads(res.response)
-                            if right["error"] and left["error"]:
+                            if "error" in right and "error" in left:
                                 res.compare_result = "both_returned_error"
-                            elif right["error"]:
+                            elif "error" in right:
                                 res.compare_result = "backup_returned_error"
-                            elif left["error"]:
+                            elif "error" in left:
                                 res.compare_result = "backup_returned_result"
                             elif left["result"] == right["result"]:
                                 res.compare_result = "both_succeeded_same_result"
