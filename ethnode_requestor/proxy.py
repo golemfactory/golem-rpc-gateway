@@ -221,13 +221,19 @@ class EthnodeProxy:
 
     async def _clients_endpoint(self, request: web.Request) -> web.Response:
         # test response
+        if request.match_info["admin_token"] == os.getenv("ADMIN_TOKEN", "admin"):
+            return web.Response(text="Wrong admin token")
         return web.Response(text=self._clients.to_json(), content_type="application/json")
 
     async def _instances_endpoint(self, request: web.Request) -> web.Response:
         # test response
+        if request.match_info["admin_token"] == os.getenv("ADMIN_TOKEN", "admin"):
+            return web.Response(text="Wrong admin token")
         return web.Response(text=json.dumps(await self.get_cluster_info()), content_type="application/json")
 
     async def _offers_endpoint(self, request: web.Request) -> web.Response:
+        if request.match_info["admin_token"] == os.getenv("ADMIN_TOKEN", "admin"):
+            return web.Response(text="Wrong admin token")
 
         def convert_timestamps(d: dict):
             for k, v in d.items():
@@ -279,7 +285,8 @@ class EthnodeProxy:
         t = "empty"
         template = env.get_template("index.html")
         base_url = os.getenv("GATEWAY_BASE_URL") or 'http://127.0.0.1:8545'
-        page = template.render(hello="template_test", base_url=base_url)
+        admin_token = os.getenv("ADMIN_TOKEN", "admin")
+        page = template.render(hello="template_test", base_url=base_url, admin_token=admin_token)
         return web.Response(text=page, content_type="text/html")
 
     async def run(self):
@@ -292,9 +299,9 @@ class EthnodeProxy:
         aiohttp_app.router.add_route("*", "/", handler=self._main_endpoint)
         aiohttp_app.router.add_route("*", "/rpc/{network}/{token}", handler=self._proxy_rpc)
         aiohttp_app.router.add_route("*", "/hello", handler=self._hello)
-        aiohttp_app.router.add_route("*", "/clients", handler=self._clients_endpoint)
-        aiohttp_app.router.add_route("*", "/instances", handler=self._instances_endpoint)
-        aiohttp_app.router.add_route("*", "/offers", handler=self._offers_endpoint)
+        aiohttp_app.router.add_route("*", "/clients/{admin_token}", handler=self._clients_endpoint)
+        aiohttp_app.router.add_route("*", "/instances/{admin_token}", handler=self._instances_endpoint)
+        aiohttp_app.router.add_route("*", "/offers/{admin_token}", handler=self._offers_endpoint)
         aiohttp_app.add_routes(routes)
         self._app_task = asyncio.create_task(
             web._run_app(aiohttp_app, port=self._port, handle_signals=False, print=None)  # noqa
