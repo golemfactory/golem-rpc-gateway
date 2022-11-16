@@ -221,18 +221,18 @@ class EthnodeProxy:
 
     async def _clients_endpoint(self, request: web.Request) -> web.Response:
         # test response
-        if request.match_info["admin_token"] == os.getenv("ADMIN_TOKEN", "admin"):
+        if request.match_info["admin_token"] != os.getenv("ADMIN_TOKEN", "admin"):
             return web.Response(text="Wrong admin token")
         return web.Response(text=self._clients.to_json(), content_type="application/json")
 
     async def _instances_endpoint(self, request: web.Request) -> web.Response:
         # test response
-        if request.match_info["admin_token"] == os.getenv("ADMIN_TOKEN", "admin"):
+        if request.match_info["admin_token"] != os.getenv("ADMIN_TOKEN", "admin"):
             return web.Response(text="Wrong admin token")
         return web.Response(text=json.dumps(await self.get_cluster_info()), content_type="application/json")
 
     async def _offers_endpoint(self, request: web.Request) -> web.Response:
-        if request.match_info["admin_token"] == os.getenv("ADMIN_TOKEN", "admin"):
+        if request.match_info["admin_token"] != os.getenv("ADMIN_TOKEN", "admin"):
             return web.Response(text="Wrong admin token")
 
         def convert_timestamps(d: dict):
