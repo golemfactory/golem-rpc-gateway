@@ -216,8 +216,8 @@ class EthnodeProxy:
     async def _hello(self, request: web.Request) -> web.Response:
         # test response
         if request.match_info["admin_token"] != os.getenv("ADMIN_TOKEN", "admin"):
-            return web.Response(text=json.dumps({"token": "invalid"}, content_type="application/json"))
-        return web.Response(text=json.dumps({"token": "OK"}, content_type="application/json"))
+            return web.Response(text=json.dumps({"token": "invalid"}), content_type="application/json")
+        return web.Response(text=json.dumps({"token": "OK"}), content_type="application/json")
 
     async def _clients_endpoint(self, request: web.Request) -> web.Response:
         # test response
