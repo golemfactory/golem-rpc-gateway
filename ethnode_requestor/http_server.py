@@ -21,15 +21,19 @@ routes = web.RouteTableDef()
 aiohttp_app = web.Application()
 
 
-@routes.get("/app/db")
+@routes.get("/app/db/{admin_token}")
 async def test(request):
+    if request.match_info["admin_token"] != os.getenv("ADMIN_TOKEN", "admin"):
+        return web.Response(text="Wrong admin token")
     res = db_engine.name
     return web.Response(text=json.dumps(res, cls=LocalJSONEncoder, mode=SerializationMode.FULL),
                         content_type="application/json")
 
 
-@routes.get("/app/current")
+@routes.get("/app/current/{admin_token}")
 async def test(request):
+    if request.match_info["admin_token"] != os.getenv("ADMIN_TOKEN", "admin"):
+        return web.Response(text="Wrong admin token")
     response = {}
     response["db_engine"] = db_engine.name
     app_info = None
@@ -49,16 +53,20 @@ async def test(request):
                         content_type="application/json")
 
 
-@routes.get("/providers")
+@routes.get("/providers/{admin_token}")
 async def test(request):
+    if request.match_info["admin_token"] != os.getenv("ADMIN_TOKEN", "admin"):
+        return web.Response(text="Wrong admin token")
     response = {"app_info": await list_all_instances()}
 
     return web.Response(text=json.dumps(response, cls=LocalJSONEncoder, mode=SerializationMode.FULL),
                         content_type="application/json")
 
 
-@routes.get("/yagna")
+@routes.get("/yagna/{admin_token}")
 async def test(request):
+    if request.match_info["admin_token"] != os.getenv("ADMIN_TOKEN", "admin"):
+        return web.Response(text="Wrong admin token")
     # todo: probably cache this request
     url = os.getenv("YAGNA_MONITOR_URL") or 'http://127.0.0.1:3333'
     resp = requests.get(url=url)
@@ -70,8 +78,10 @@ async def test(request):
     return web.Response(text="Failed to get yagna info")
 
 
-@routes.get("/test_client_endpoint")
+@routes.get("/test_client_endpoint/{admin_token}")
 async def test(request):
+    if request.match_info["admin_token"] != os.getenv("ADMIN_TOKEN", "admin"):
+        return web.Response(text="Wrong admin token")
     base_url = os.getenv("GATEWAY_BASE_URL") or 'http://127.0.0.1:8545'
     allowed_endpoint = os.getenv("ALLOWED_ENDPOINT") or 'mumbai'
 
