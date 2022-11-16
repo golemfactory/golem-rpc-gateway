@@ -21,6 +21,7 @@ services:
       - ALLOWED_ENDPOINT=${ALLOWED_ENDPOINT}
       - POLYGON_BACKUP_RPC=${POLYGON_BACKUP_RPC}
       - MUMBAI_BACKUP_RPC=${MUMBAI_BACKUP_RPC}
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
     command: run.sh
     restart: unless-stopped
     ports:
