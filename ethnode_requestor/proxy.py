@@ -282,7 +282,8 @@ class EthnodeProxy:
         return cv
 
     async def _main_endpoint(self, request: web.Request) -> web.Response:
-        t = "empty"
+        if request.match_info["admin_token"] != os.getenv("ADMIN_TOKEN", "admin"):
+            return web.Response(text="Wrong admin token")
         template = env.get_template("index.html")
         base_url = os.getenv("GATEWAY_BASE_URL") or 'http://127.0.0.1:8545'
         admin_token = os.getenv("ADMIN_TOKEN", "admin")
@@ -296,7 +297,7 @@ class EthnodeProxy:
         fashion
         """
 
-        aiohttp_app.router.add_route("*", "/", handler=self._main_endpoint)
+        aiohttp_app.router.add_route("*", "/info/{admin_token}", handler=self._main_endpoint)
         aiohttp_app.router.add_route("*", "/rpc/{network}/{token}", handler=self._proxy_rpc)
         aiohttp_app.router.add_route("*", "/hello", handler=self._hello)
         aiohttp_app.router.add_route("*", "/clients/{admin_token}", handler=self._clients_endpoint)
