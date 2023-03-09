@@ -59,6 +59,9 @@ class EthnodeProxy:
         api_key = "MAaCpE421MddDmzMLcAp"
         self._clients.add_client(api_key)
 
+        api_key = "monitor2mZGGm5gQR"
+        self._clients.add_client(api_key)
+
         api_key = "realityDgzElZ15Y8"
         self._clients.add_client(api_key)
 
