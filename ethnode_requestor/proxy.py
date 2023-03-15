@@ -103,6 +103,15 @@ class EthnodeProxy:
 
             compare_request = None
             if client:
+                if network == "polygon":
+                    res_backup = await self._handle_request(polygon_backup_rpc_url, data)
+                elif network == "mumbai":
+                    res_backup = await self._handle_request(mumbai_backup_rpc_url, data)
+                elif network == "rinkeby":
+                    res_backup = await self._handle_request(rinkeby_rpc_url, data)
+                else:
+                    raise Exception("unknown network")
+
                 retry = 0
                 for retry in range(MAX_RETRIES):
                     instance = await self.get_instance()
@@ -148,16 +157,9 @@ class EthnodeProxy:
 
                     # continue trying on other error
 
-                if network == "polygon":
-                    res = await self._handle_request(polygon_backup_rpc_url, data)
-                elif network == "mumbai":
-                    res = await self._handle_request(mumbai_backup_rpc_url, data)
-                elif network == "rinkeby":
-                    res = await self._handle_request(rinkeby_rpc_url, data)
-                else:
-                    raise Exception("unknown network")
 
                 # todo add client to database
+                res = res_backup
                 res.client_id = client_id
                 res.backup = True
 
