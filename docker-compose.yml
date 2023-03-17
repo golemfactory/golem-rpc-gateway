@@ -5,10 +5,10 @@ services:
       dockerfile: Dockerfile
     environment:
       - POSTGRES_HOST=postgres
-      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_USER=gateway
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - MONITOR_DB_ENGINE=${MONITOR_DB_ENGINE}
+      - POSTGRES_DB=gateway
+      - MONITOR_DB_ENGINE=postgres
       - YAGNA_API_URL=http://yagna_requestor_node:7465
       - YAGNA_MARKET_URL=http://yagna_requestor_node:7465/market-api/v1
       - YAGNA_ACTIVITY_URL=http://yagna_requestor_node:7465/activity-api/v1
@@ -22,33 +22,23 @@ services:
       - POLYGON_BACKUP_RPC=${POLYGON_BACKUP_RPC}
       - MUMBAI_BACKUP_RPC=${MUMBAI_BACKUP_RPC}
       - ADMIN_TOKEN=${ADMIN_TOKEN}
-    command: run.sh
+    command: ./run.sh
     restart: unless-stopped
-    ports:
-      - "${ETHNODE_PORT}:8545"    
   yagna_requestor_node:
     build:
       context: yagna_requestor_node
       dockerfile: Dockerfile
     image: yagna_requestor_node
     volumes:
-      - "./yagna_dir:/root/.local/share/yagna"
+      - "${DATADIR}/yagna:/root/.local/share/yagna"
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - MONITOR_DB_ENGINE=${MONITOR_DB_ENGINE}
       - GSB_URL=tcp://0.0.0.0:7464
       - YAGNA_API_URL=http://0.0.0.0:7465
       - YAGNA_APPKEY=${YAGNA_APPKEY}
       - YAGNA_AUTOCONF_ID_SECRET=${YAGNA_AUTOCONF_ID_SECRET}
-      - ADDR=${ADDR}
       - YAGNA_AUTOCONF_APPKEY=${YAGNA_APPKEY}
-    command: run.sh
+    command: ./run.sh
     restart: unless-stopped
-    ports:
-      - "${YAGNA_MON_PORT}:3333"
   frontend:
     build:
       context: golem-rpc-frontend
@@ -58,11 +48,11 @@ services:
   postgres:
     image: postgres
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_USER=gateway
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_DB=gateway
     volumes:
-      - ./postgres:/var/lib/postgresql/data
+      - ${DATADIR}/postgres:/var/lib/postgresql/data
     restart: unless-stopped
   pgadmin:
     image: dpage/pgadmin4
@@ -78,7 +68,5 @@ services:
       - PGADMIN_CONFIG_MAX_LOGIN_ATTEMPTS=500
       - SCRIPT_NAME=${PGADMIN_BASE_URL}
     volumes:
-      - ./pgadmin:/var/lib/pgadmin
+      - ${DATADIR}/pgadmin:/var/lib/pgadmin
     restart: unless-stopped
-    
-      
