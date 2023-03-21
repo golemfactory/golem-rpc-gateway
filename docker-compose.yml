@@ -24,6 +24,8 @@ services:
       - ADMIN_TOKEN=${ADMIN_TOKEN}
     command: ./run.sh
     restart: unless-stopped
+    ports:
+      - "${ETHNODE_PORT}:8545"
   yagna_requestor_node:
     build:
       context: yagna_requestor_node
