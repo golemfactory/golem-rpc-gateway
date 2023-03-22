@@ -47,6 +47,8 @@ services:
       dockerfile: Dockerfile    
     ports:
       - "${FRONTEND_PORT}:3000"
+    volumes:
+      - "${DATADIR}/frontend:/app/etc"
   postgres:
     image: postgres
     environment:
