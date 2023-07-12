@@ -23,20 +23,20 @@ def check_me():
 
 
 def init_sender():
-    command = f"yagna payment init --sender"
+    command = f"yagna payment init --sender --network goerli"
     print(f"Executing command {command}")
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate()
     if err:
         if err == b'Error: Insufficient GLM\n':
             # If it's a testnet, let's try asking for faucet help
-            subprocess.run(["yagna", "payment", "fund"]).check_returncode()
+            subprocess.run(["yagna", "payment", "fund", "--network=goerli"]).check_returncode()
         raise Exception(err)
     return True
 
 
 def check_payments():
-    command = f"yagna payment status --json"
+    command = f"yagna payment status --json --network goerli"
     print(f"Executing command {command}")
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate()

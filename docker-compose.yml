@@ -13,6 +13,7 @@ services:
       - YAGNA_MARKET_URL=http://yagna_requestor_node:7465/market-api/v1
       - YAGNA_ACTIVITY_URL=http://yagna_requestor_node:7465/activity-api/v1
       - YAGNA_PAYMENT_URL=http://yagna_requestor_node:7465/payment-api/v1
+      - YAGNA_PAYMENT_NETWORK=goerli
       - YAGNA_MONITOR_URL=http://yagna_requestor_node:3333
       - YAGNA_APPKEY=${YAGNA_APPKEY}
       - GATEWAY_BASE_URL=${GATEWAY_BASE_URL}
@@ -39,6 +40,7 @@ services:
       - YAGNA_APPKEY=${YAGNA_APPKEY}
       - YAGNA_AUTOCONF_ID_SECRET=${YAGNA_AUTOCONF_ID_SECRET}
       - YAGNA_AUTOCONF_APPKEY=${YAGNA_APPKEY}
+      - GOERLI_GETH_ADDR=https://rpc.ankr.com/eth_goerli
     command: ./run.sh
     restart: unless-stopped
   frontend:
