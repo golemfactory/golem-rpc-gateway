@@ -33,7 +33,7 @@ services:
       dockerfile: Dockerfile
     image: yagna_requestor_node
     volumes:
-      - "${DATADIR}/yagna:/root/.local/share/yagna"
+      - "${DATADIR}/yagna-12.2:/root/.local/share/yagna"
     environment:
       - GSB_URL=tcp://0.0.0.0:7464
       - YAGNA_API_URL=http://0.0.0.0:7465

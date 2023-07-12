@@ -28,10 +28,8 @@ def init_sender():
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate()
     if err:
-        if err == b'Error: Insufficient GLM\n':
-            # If it's a testnet, let's try asking for faucet help
-            subprocess.run(["yagna", "payment", "fund", "--network=goerli"]).check_returncode()
         raise Exception(err)
+    subprocess.run(["yagna", "payment", "fund", "--network=goerli"]).check_returncode()
     return True
 
 
