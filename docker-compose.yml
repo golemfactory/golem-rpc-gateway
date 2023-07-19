@@ -51,6 +51,7 @@ services:
       - "${FRONTEND_PORT}:3000"
     volumes:
       - "${DATADIR}/frontend:/app/etc"
+    restart: unless-stopped
   postgres:
     image: postgres
     environment:
